@@ -1,0 +1,21 @@
+# 시크릿·로컬 환경
+.env
+.env.*
+*.key
+*.pem
+secrets/
+
+# 개인 로그·메모리
+*.log
+history.json
+__pycache__/
+
+# OS 시스템 파일
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 에디터
+.vscode/
+.idea/
+*.swp

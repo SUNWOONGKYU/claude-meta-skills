@@ -1,0 +1,406 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2100" height="1850" viewBox="0 0 2100 1850" font-family="Pretendard, 'Malgun Gothic', sans-serif">
+  <defs>
+    <marker id="arw" viewBox="0 0 10 10" markerWidth="8" markerHeight="8" refX="7" refY="5" orient="auto-start-reverse">
+      <path d="M0,0 L9,5 L0,10 z" fill="#2D6A4F"/>
+    </marker>
+    <marker id="arwg" viewBox="0 0 10 10" markerWidth="8" markerHeight="8" refX="7" refY="5" orient="auto-start-reverse">
+      <path d="M0,0 L9,5 L0,10 z" fill="#C9A961"/>
+    </marker>
+    <marker id="arwr" viewBox="0 0 10 10" markerWidth="8" markerHeight="8" refX="7" refY="5" orient="auto-start-reverse">
+      <path d="M0,0 L9,5 L0,10 z" fill="#B33A3A"/>
+    </marker>
+    <marker id="arwb" viewBox="0 0 10 10" markerWidth="8" markerHeight="8" refX="7" refY="5" orient="auto-start-reverse">
+      <path d="M0,0 L9,5 L0,10 z" fill="#1976D2"/>
+    </marker>
+  </defs>
+
+  <rect width="2100" height="1850" fill="#FAFAF7"/>
+  <rect x="9" y="9" width="2082" height="1832" fill="none" stroke="#E6E2D6" stroke-width="2"/>
+
+  <!-- ===================== HEADER ===================== -->
+  <rect x="70" y="40" width="6" height="58" fill="#C9A961"/>
+  <text x="94" y="70" font-size="32" font-weight="700" fill="#0A1F14">llm-dependent-agent-create</text>
+  <text x="680" y="70" font-size="21" font-weight="600" fill="#2D6A4F">— LLM 의존형 에이전트 제조 공장</text>
+  <text x="94" y="99" font-size="15" fill="#6B6B63">막연한 요청 한 줄을 받아 · 인프라 판별 → 9-Phase 공장 → 운영 루프 → 다음 사이클로 회귀</text>
+  <text x="2030" y="58" font-size="13" font-weight="700" fill="#C9A961" text-anchor="end">FRAMEWORK MAP</text>
+  <text x="2030" y="80" font-size="12" fill="#9A9A90" text-anchor="end">관계도 + 흐름도 + 인프라 분기</text>
+  <text x="2030" y="100" font-size="11" font-weight="700" fill="#B33A3A" text-anchor="end">V3.3 · 2026-05-27</text>
+  <line x1="70" y1="118" x2="2030" y2="118" stroke="#E6E2D6" stroke-width="1.5"/>
+
+  <!-- ===================== (0) INFRA SPLIT — ★V3.2 신설 ===================== -->
+  <text x="70" y="158" font-size="21" font-weight="700" fill="#B33A3A">&#9312; 인프라 판별 — Q-Infra (★V3.2 신설)</text>
+  <text x="500" y="158" font-size="13" fill="#9A9A90">Phase 0 첫 결정 — 모드 판별보다 먼저. 인프라가 모드를 제약한다 (포털은 A 필수)</text>
+
+  <!-- INPUT 박스 -->
+  <rect x="90" y="178" width="220" height="80" rx="9" fill="#0A1F14"/>
+  <text x="200" y="209" font-size="12" font-weight="700" fill="#C9A961" text-anchor="middle">INPUT</text>
+  <text x="200" y="234" font-size="13.5" font-weight="600" fill="#FFFFFF" text-anchor="middle">막연한 요청 한 줄</text>
+  <text x="200" y="251" font-size="10" fill="#9FB3A6" text-anchor="middle">"~하는 AI 만들어줘"</text>
+  <line x1="310" y1="218" x2="380" y2="218" stroke="#2D6A4F" stroke-width="2.5" marker-end="url(#arw)"/>
+
+  <!-- Q-Infra 결정 박스 -->
+  <rect x="385" y="178" width="280" height="80" rx="9" fill="#FFF8E1" stroke="#FFC107" stroke-width="2.5"/>
+  <text x="525" y="208" font-size="13" font-weight="700" fill="#B08A2E" text-anchor="middle">🌐 Q-Infra</text>
+  <text x="525" y="227" font-size="12" fill="#8A7236" text-anchor="middle">Supabase·DB·인증·웹호스팅</text>
+  <text x="525" y="245" font-size="12" font-weight="700" fill="#0A1F14" text-anchor="middle">있나?</text>
+  <line x1="525" y1="258" x2="525" y2="285" stroke="#FFC107" stroke-width="2"/>
+
+  <!-- A 박스 -->
+  <rect x="700" y="178" width="280" height="80" rx="9" fill="#E3F2FD" stroke="#1976D2" stroke-width="2.5"/>
+  <text x="840" y="206" font-size="14" font-weight="700" fill="#1976D2" text-anchor="middle">A — Supabase 있음</text>
+  <text x="840" y="225" font-size="11" fill="#2C5A8A" text-anchor="middle">엔진 + DB + 인증 풀세트</text>
+  <text x="840" y="241" font-size="11" fill="#2C5A8A" text-anchor="middle">api/run.py + Supabase + Vercel</text>
+  <text x="840" y="255" font-size="10" fill="#5B6F88" text-anchor="middle">모드: 단일 · 배치 · 포털 모두 가능</text>
+  <line x1="525" y1="258" x2="700" y2="218" stroke="#1976D2" stroke-width="2" marker-end="url(#arwb)"/>
+  <text x="603" y="225" font-size="11" font-weight="700" fill="#1976D2">YES</text>
+
+  <!-- B 박스 -->
+  <rect x="1000" y="178" width="280" height="80" rx="9" fill="#FCE9E9" stroke="#B33A3A" stroke-width="2.5"/>
+  <text x="1140" y="206" font-size="14" font-weight="700" fill="#B33A3A" text-anchor="middle">B — DB 없음</text>
+  <text x="1140" y="225" font-size="11" fill="#7A2828" text-anchor="middle">.py + API 키만 (로컬·내부망)</text>
+  <text x="1140" y="241" font-size="11" fill="#7A2828" text-anchor="middle">engine.py + skills/*.md + run.py</text>
+  <text x="1140" y="255" font-size="10" fill="#8A4848" text-anchor="middle">모드: 단일 · 배치만 (포털 ❌)</text>
+  <line x1="700" y1="218" x2="1000" y2="218" stroke="#B33A3A" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arwr)"/>
+  <text x="850" y="207" font-size="11" font-weight="700" fill="#B33A3A">NO →</text>
+
+  <!-- SSOT 박스 — 인프라 무관 공통 -->
+  <rect x="1310" y="178" width="320" height="80" rx="9" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2.5"/>
+  <text x="1470" y="205" font-size="14" font-weight="700" fill="#7B1FA2" text-anchor="middle">SSOT — 마크다운 (A·B 공통) ★</text>
+  <text x="1470" y="225" font-size="11" fill="#5B2079" text-anchor="middle">스킬스/{AGENT_ID}_{skill_id}/SKILL.md</text>
+  <text x="1470" y="241" font-size="11" font-weight="700" fill="#0A1F14" text-anchor="middle">A↔B 이동 = 0 변경</text>
+  <text x="1470" y="255" font-size="10" fill="#7B1FA2" text-anchor="middle">한 곳 수정 → 양쪽 모두 자동 반영</text>
+
+  <!-- 화살표 — A와 B 둘 다 SSOT 공유 -->
+  <line x1="980" y1="218" x2="1305" y2="218" stroke="#7B1FA2" stroke-width="2" stroke-dasharray="3 3"/>
+  <line x1="1280" y1="218" x2="1305" y2="218" stroke="#7B1FA2" stroke-width="2" marker-end="url(#arwb)"/>
+
+  <!-- 형제 공장 - 우상단 -->
+  <rect x="1665" y="178" width="365" height="80" rx="11" fill="#FFFFFF" stroke="#C9A961" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="1847" y="206" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">/skill-create — 형제 공장</text>
+  <text x="1847" y="225" font-size="11" fill="#6B6B63" text-anchor="middle">V3.2 공통 영역 동기화 (8대 철칙·9-Phase 등)</text>
+  <text x="1847" y="241" font-size="10.5" font-weight="700" fill="#B08A2E" text-anchor="middle">같은 자산 두 포장 · 양방향 ★V3.2</text>
+  <text x="1847" y="255" font-size="10" fill="#9A9A90" text-anchor="middle">_devops/sync_meta_skills_checklist.md</text>
+
+  <line x1="70" y1="290" x2="2030" y2="290" stroke="#E6E2D6" stroke-width="1.5"/>
+
+  <!-- ===================== (1) FLOW — 9-Phase ===================== -->
+  <text x="70" y="328" font-size="21" font-weight="700" fill="#2D6A4F">&#9313; 흐름도 — 9-Phase 공장 파이프라인 + 운영 루프</text>
+  <text x="540" y="328" font-size="13" fill="#9A9A90">Phase 0 인프라 분기 → 9-Phase → 운영 루프 회귀</text>
+
+  <!-- P0 -->
+  <rect x="98" y="372" width="80" height="25" rx="12" fill="#2D6A4F"/>
+  <text x="138" y="389" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">PO+모드</text>
+  <rect x="70" y="411" width="170" height="148" rx="9" fill="#FFFFFF" stroke="#E6E2D6" stroke-width="1.5"/>
+  <text x="155" y="443" font-size="12" font-weight="700" fill="#2D6A4F" text-anchor="middle">Phase 0</text>
+  <text x="155" y="468" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">시동 · 분기</text>
+  <line x1="95" y1="487" x2="215" y2="487" stroke="#E6E2D6"/>
+  <text x="155" y="506" font-size="10" font-weight="700" fill="#B33A3A" text-anchor="middle">Q-Infra (A/B) ★V3.2</text>
+  <text x="155" y="522" font-size="10" fill="#6B6B63" text-anchor="middle">+ 모드 (단일/배치/포털)</text>
+  <text x="155" y="538" font-size="9.5" fill="#9A9A90" text-anchor="middle">PO 강제 거부권</text>
+  <line x1="240" y1="490" x2="260" y2="490" stroke="#2D6A4F" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- P1 -->
+  <rect x="290" y="372" width="80" height="25" rx="12" fill="#2D6A4F"/>
+  <text x="330" y="389" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">PO ★</text>
+  <rect x="262" y="411" width="170" height="148" rx="9" fill="#FFFFFF" stroke="#E6E2D6" stroke-width="1.5"/>
+  <text x="347" y="443" font-size="12" font-weight="700" fill="#2D6A4F" text-anchor="middle">Phase 1</text>
+  <text x="347" y="468" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">요구 발굴</text>
+  <line x1="287" y1="487" x2="407" y2="487" stroke="#E6E2D6"/>
+  <text x="347" y="505" font-size="10" font-weight="700" fill="#2D6A4F" text-anchor="middle">1a 단일 · 1b 배치</text>
+  <text x="347" y="521" font-size="10" font-weight="700" fill="#B33A3A" text-anchor="middle">1c 포털 (A 강제) ★</text>
+  <text x="347" y="538" font-size="9.5" fill="#9A9A90" text-anchor="middle">스무고개 + 아키 SVG</text>
+  <line x1="432" y1="490" x2="452" y2="490" stroke="#2D6A4F" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- P2 GATE -->
+  <rect x="482" y="372" width="80" height="25" rx="12" fill="#C9A961"/>
+  <text x="522" y="389" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">⛔게이트</text>
+  <rect x="454" y="411" width="170" height="148" rx="9" fill="#FAF3DE" stroke="#C9A961" stroke-width="2.5"/>
+  <text x="539" y="443" font-size="12" font-weight="700" fill="#B08A2E" text-anchor="middle">Phase 2</text>
+  <text x="539" y="468" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">목표 정의</text>
+  <line x1="479" y1="487" x2="599" y2="487" stroke="#E7D9AE"/>
+  <text x="539" y="506" font-size="10" fill="#8A7236" text-anchor="middle">MBO 목표서</text>
+  <text x="539" y="522" font-size="10" font-weight="700" fill="#B08A2E" text-anchor="middle">PO 승인 필수</text>
+  <text x="539" y="538" font-size="9.5" fill="#8A7236" text-anchor="middle">규모 S/M/L 확정</text>
+  <line x1="624" y1="490" x2="644" y2="490" stroke="#2D6A4F" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- P3 -->
+  <rect x="674" y="372" width="80" height="25" rx="12" fill="#ECEBE3" stroke="#D8D8D0"/>
+  <text x="714" y="389" font-size="10.5" font-weight="700" fill="#6B6B63" text-anchor="middle">자율</text>
+  <rect x="646" y="411" width="170" height="148" rx="9" fill="#FFFFFF" stroke="#E6E2D6" stroke-width="1.5"/>
+  <text x="731" y="443" font-size="12" font-weight="700" fill="#2D6A4F" text-anchor="middle">Phase 3</text>
+  <text x="731" y="468" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">발굴</text>
+  <line x1="671" y1="487" x2="791" y2="487" stroke="#E6E2D6"/>
+  <text x="731" y="506" font-size="10" fill="#6B6B63" text-anchor="middle">OSS·HF·MCP</text>
+  <text x="731" y="522" font-size="10" font-weight="700" fill="#2D6A4F" text-anchor="middle">+ 사내 자산 ★V3</text>
+  <text x="731" y="538" font-size="9.5" fill="#9A9A90" text-anchor="middle">후보 5~10개</text>
+  <line x1="816" y1="490" x2="836" y2="490" stroke="#2D6A4F" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- P4 HEART -->
+  <rect x="866" y="372" width="80" height="25" rx="12" fill="#ECEBE3" stroke="#D8D8D0"/>
+  <text x="906" y="389" font-size="10.5" font-weight="700" fill="#6B6B63" text-anchor="middle">자율</text>
+  <rect x="838" y="411" width="170" height="148" rx="9" fill="#E9F0EC" stroke="#2D6A4F" stroke-width="2.5"/>
+  <text x="923" y="443" font-size="12" font-weight="700" fill="#2D6A4F" text-anchor="middle">Phase 4 &#9733; 심장</text>
+  <text x="923" y="468" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">분해·검증</text>
+  <line x1="863" y1="487" x2="983" y2="487" stroke="#CADDD1"/>
+  <text x="923" y="506" font-size="10" fill="#3F6B53" text-anchor="middle">5대 KPI · 주작 진단</text>
+  <text x="923" y="522" font-size="10" font-weight="700" fill="#2D6A4F" text-anchor="middle">BOM 5분류</text>
+  <text x="923" y="538" font-size="9.5" fill="#3F6B53" text-anchor="middle">🟢🟡🔴🏭🔵 + 이중분류규칙</text>
+  <line x1="1008" y1="490" x2="1028" y2="490" stroke="#2D6A4F" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- P5 -->
+  <rect x="1058" y="372" width="80" height="25" rx="12" fill="#ECEBE3" stroke="#D8D8D0"/>
+  <text x="1098" y="389" font-size="10.5" font-weight="700" fill="#6B6B63" text-anchor="middle">자율</text>
+  <rect x="1030" y="411" width="170" height="148" rx="9" fill="#FFFFFF" stroke="#E6E2D6" stroke-width="1.5"/>
+  <text x="1115" y="443" font-size="12" font-weight="700" fill="#2D6A4F" text-anchor="middle">Phase 5</text>
+  <text x="1115" y="468" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">설계 검증</text>
+  <line x1="1055" y1="487" x2="1175" y2="487" stroke="#E6E2D6"/>
+  <text x="1115" y="506" font-size="10" fill="#6B6B63" text-anchor="middle">페르소나 토론</text>
+  <text x="1115" y="522" font-size="10" font-weight="700" fill="#2D6A4F" text-anchor="middle">정량 S/M/L</text>
+  <text x="1115" y="538" font-size="9.5" fill="#9A9A90" text-anchor="middle">배치/포털=L 자동</text>
+  <line x1="1200" y1="490" x2="1220" y2="490" stroke="#2D6A4F" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- P6 — 인프라별 패키징 ★V3.2 -->
+  <rect x="1250" y="372" width="80" height="25" rx="12" fill="#FFFFFF" stroke="#2D6A4F" stroke-dasharray="3 2"/>
+  <text x="1290" y="389" font-size="10.5" font-weight="700" fill="#2D6A4F" text-anchor="middle">PO?</text>
+  <rect x="1222" y="411" width="170" height="148" rx="9" fill="#E3F2FD" stroke="#1976D2" stroke-width="2"/>
+  <text x="1307" y="443" font-size="12" font-weight="700" fill="#1976D2" text-anchor="middle">Phase 6 · 3단 + A/B</text>
+  <text x="1307" y="468" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">조립·제조</text>
+  <line x1="1247" y1="487" x2="1367" y2="487" stroke="#BBDEFB"/>
+  <text x="1307" y="504" font-size="9.5" font-weight="700" fill="#1976D2" text-anchor="middle">A: api/run.py + 페이지</text>
+  <text x="1307" y="520" font-size="9.5" font-weight="700" fill="#B33A3A" text-anchor="middle">B: engine + skills + run</text>
+  <text x="1307" y="538" font-size="9" fill="#9A9A90" text-anchor="middle">5요소 + 자가평가 둘 다 OK</text>
+  <line x1="1392" y1="490" x2="1412" y2="490" stroke="#2D6A4F" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- P7 -->
+  <rect x="1442" y="372" width="80" height="25" rx="12" fill="#ECEBE3" stroke="#D8D8D0"/>
+  <text x="1482" y="389" font-size="10.5" font-weight="700" fill="#6B6B63" text-anchor="middle">자율</text>
+  <rect x="1414" y="411" width="170" height="148" rx="9" fill="#FFFFFF" stroke="#E6E2D6" stroke-width="1.5"/>
+  <text x="1499" y="443" font-size="12" font-weight="700" fill="#2D6A4F" text-anchor="middle">Phase 7 · 4단</text>
+  <text x="1499" y="468" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">출하 검사</text>
+  <line x1="1439" y1="487" x2="1559" y2="487" stroke="#E6E2D6"/>
+  <text x="1499" y="505" font-size="9" font-weight="700" fill="#2D6A4F" text-anchor="middle">정적·동적·UI클릭·한도</text>
+  <text x="1499" y="521" font-size="9" font-weight="700" fill="#2D6A4F" text-anchor="middle">Verification Agent 4단계</text>
+  <text x="1499" y="538" font-size="9" fill="#9A9A90" text-anchor="middle">회귀 깊이 결정 표</text>
+  <line x1="1584" y1="490" x2="1604" y2="490" stroke="#2D6A4F" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- P8 -->
+  <rect x="1634" y="372" width="80" height="25" rx="12" fill="#2D6A4F"/>
+  <text x="1674" y="389" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">PO</text>
+  <rect x="1606" y="411" width="170" height="148" rx="9" fill="#FFFFFF" stroke="#E6E2D6" stroke-width="1.5"/>
+  <text x="1691" y="443" font-size="12" font-weight="700" fill="#2D6A4F" text-anchor="middle">Phase 8</text>
+  <text x="1691" y="468" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">자산화·출하</text>
+  <line x1="1631" y1="487" x2="1751" y2="487" stroke="#E6E2D6"/>
+  <text x="1691" y="506" font-size="10" fill="#6B6B63" text-anchor="middle">등재 + CLAUDE.md</text>
+  <text x="1691" y="522" font-size="10" font-weight="700" fill="#2D6A4F" text-anchor="middle">로그 인프라 확인</text>
+  <text x="1691" y="538" font-size="9.5" fill="#9A9A90" text-anchor="middle">출하 보고서</text>
+  <line x1="1776" y1="490" x2="1796" y2="490" stroke="#2D6A4F" stroke-width="2" marker-end="url(#arw)"/>
+
+  <!-- P9 — A/B 분기 ★V3.2 -->
+  <rect x="1826" y="372" width="80" height="25" rx="12" fill="#B33A3A"/>
+  <text x="1866" y="389" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">루프</text>
+  <rect x="1798" y="411" width="208" height="148" rx="9" fill="#FCE9E9" stroke="#B33A3A" stroke-width="2.5"/>
+  <text x="1902" y="443" font-size="12" font-weight="700" fill="#B33A3A" text-anchor="middle">Phase 9 · A/B 분기 ★V3.2</text>
+  <text x="1902" y="468" font-size="14" font-weight="700" fill="#0A1F14" text-anchor="middle">운영·개선</text>
+  <line x1="1823" y1="487" x2="1981" y2="487" stroke="#F2D4D4"/>
+  <text x="1902" y="504" font-size="9.5" font-weight="700" fill="#1976D2" text-anchor="middle">A: 자동 임계값 6종</text>
+  <text x="1902" y="520" font-size="9.5" font-weight="700" fill="#B33A3A" text-anchor="middle">B: 로컬 JSON + 수동 점검</text>
+  <text x="1902" y="538" font-size="9" font-weight="700" fill="#B33A3A" text-anchor="middle">→ Phase 1~6 회귀</text>
+
+  <!-- Phase 9 → Phase 1 회귀 화살표 (큰 곡선) -->
+  <path d="M 1902,562 Q 1902,620 1500,620 Q 1000,620 600,620 Q 347,620 347,562"
+        stroke="#B33A3A" stroke-width="2.5" stroke-dasharray="8 4" fill="none" marker-end="url(#arwr)"/>
+  <rect x="900" y="600" width="200" height="42" rx="6" fill="#FCE9E9" stroke="#B33A3A" stroke-width="1.5"/>
+  <text x="1000" y="620" font-size="11" font-weight="700" fill="#B33A3A" text-anchor="middle">회귀 깊이 결정 표</text>
+  <text x="1000" y="634" font-size="10" fill="#7A2828" text-anchor="middle">Phase 0/2/4/6 4분기 + 모드재선언</text>
+
+  <!-- flow legend -->
+  <rect x="70" y="670" width="44" height="22" rx="11" fill="#2D6A4F"/>
+  <text x="92" y="685" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle">PO</text>
+  <text x="124" y="686" font-size="12" fill="#6B6B63">PO 상호작용</text>
+  <rect x="252" y="670" width="44" height="22" rx="11" fill="#FFFFFF" stroke="#2D6A4F" stroke-dasharray="3 2"/>
+  <text x="274" y="685" font-size="10" font-weight="700" fill="#2D6A4F" text-anchor="middle">PO?</text>
+  <text x="306" y="686" font-size="12" fill="#6B6B63">조건부 접점</text>
+  <rect x="464" y="670" width="44" height="22" rx="11" fill="#ECEBE3" stroke="#D8D8D0"/>
+  <text x="486" y="685" font-size="10.5" font-weight="700" fill="#6B6B63" text-anchor="middle">자율</text>
+  <text x="518" y="686" font-size="12" fill="#6B6B63">스킬 자율 실행</text>
+  <rect x="676" y="670" width="44" height="22" rx="11" fill="#C9A961"/>
+  <text x="698" y="685" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">⛔</text>
+  <text x="730" y="686" font-size="12" fill="#6B6B63">필수 승인 게이트</text>
+  <rect x="918" y="670" width="44" height="22" rx="11" fill="#B33A3A"/>
+  <text x="940" y="685" font-size="10" font-weight="700" fill="#FFFFFF" text-anchor="middle">루프</text>
+  <text x="972" y="686" font-size="12" fill="#6B6B63">운영 회귀 루프</text>
+  <text x="1170" y="686" font-size="12" fill="#9A9A90">&#9733; Phase 4 = 공장의 심장 / Phase 0·6·9 = V3.2 A/B 분기</text>
+
+  <line x1="70" y1="722" x2="2030" y2="722" stroke="#E6E2D6" stroke-width="1.5"/>
+
+  <!-- ===================== (2) PACKAGING — A vs B 비교 ★V3.2 신설 ===================== -->
+  <text x="70" y="762" font-size="21" font-weight="700" fill="#2D6A4F">&#9314; Phase 6 인프라별 패키징 구조 ★V3.2 — 분리형 + SSOT</text>
+
+  <!-- A 패키징 (좌) -->
+  <rect x="70" y="780" width="950" height="280" rx="9" fill="#FFFFFF" stroke="#1976D2" stroke-width="2"/>
+  <rect x="70" y="780" width="950" height="32" rx="9" fill="#E3F2FD"/>
+  <text x="545" y="802" font-size="14" font-weight="700" fill="#1976D2" text-anchor="middle">A 인프라 (Supabase 있음) — 운영 엔진 + DB 모델</text>
+
+  <text x="100" y="836" font-size="11" font-weight="700" fill="#0A1F14">📁 웹사이트/</text>
+  <text x="130" y="855" font-size="11" font-family="monospace" fill="#3F3F3F">├── api/run.py            ← 운영 엔진 (LLM·tool·self_critique·비용가드)</text>
+  <text x="130" y="872" font-size="11" font-family="monospace" fill="#3F3F3F">├── pages/{NEW_CODE}.html ← 에이전트별 페이지</text>
+  <text x="130" y="889" font-size="11" font-family="monospace" fill="#3F3F3F">└── skills/{NEW_CODE}.zip ← 다운로드용 패키지</text>
+
+  <text x="100" y="916" font-size="11" font-weight="700" fill="#0A1F14">🗄 Supabase</text>
+  <text x="130" y="935" font-size="11" font-family="monospace" fill="#3F3F3F">├── agents (system_prompt = SKILL.md 본문, skills 배열)</text>
+  <text x="130" y="952" font-size="11" font-family="monospace" fill="#3F3F3F">├── skills (도메인 스킬 + 공통 도구)</text>
+  <text x="130" y="969" font-size="11" font-family="monospace" fill="#3F3F3F">├── conversations (장기 메모리 · 무제한 보관)</text>
+  <text x="130" y="986" font-size="11" font-family="monospace" fill="#3F3F3F">├── usage_log + critique_log (자가평가 로그)</text>
+  <text x="130" y="1003" font-size="11" font-family="monospace" fill="#3F3F3F">└── members + cost_limit (인증 · 비용 가드 3중)</text>
+
+  <text x="100" y="1030" font-size="11" font-weight="700" fill="#7B1FA2">🏠 SSOT (마크다운, A·B 공통)</text>
+  <text x="130" y="1049" font-size="11" font-family="monospace" fill="#7B1FA2">스킬스/{AGENT_ID}_{skill_id}/SKILL.md  →  sync_skills.py로 Supabase 동기화</text>
+
+  <!-- B 패키징 (우) -->
+  <rect x="1040" y="780" width="990" height="280" rx="9" fill="#FFFFFF" stroke="#B33A3A" stroke-width="2"/>
+  <rect x="1040" y="780" width="990" height="32" rx="9" fill="#FCE9E9"/>
+  <text x="1535" y="802" font-size="14" font-weight="700" fill="#B33A3A" text-anchor="middle">B 인프라 (DB 없음) — 분리형 패키지 (engine + skills + run)</text>
+
+  <text x="1070" y="836" font-size="11" font-weight="700" fill="#0A1F14">📁 {도구함_이름}/ (zip·USB·share drive 배포)</text>
+  <text x="1100" y="855" font-size="11" font-family="monospace" fill="#3F3F3F">├── README.md</text>
+  <text x="1100" y="872" font-size="11" font-family="monospace" fill="#3F3F3F">├── .env.example         ← ANTHROPIC_API_KEY 안내</text>
+  <text x="1100" y="889" font-size="11" font-family="monospace" fill="#3F3F3F">├── engine.py            ← LLM·tool·self_critique (V3.1 패턴 이식)</text>
+  <text x="1100" y="906" font-size="11" font-family="monospace" fill="#3F3F3F">├── run.py               ← 진입점 (python run.py AGENT_CODE 입력)</text>
+  <text x="1100" y="923" font-size="11" font-family="monospace" fill="#3F3F3F">├── history.json         ← 장기 메모리 (자동 생성·누적)</text>
+  <text x="1100" y="940" font-size="11" font-family="monospace" fill="#3F3F3F">└── skills/              ← SSOT 마크다운 (A·B 동일 구조)</text>
+  <text x="1140" y="957" font-size="11" font-family="monospace" fill="#7B1FA2">     ├── AM-01_voucher_classify/SKILL.md</text>
+  <text x="1140" y="974" font-size="11" font-family="monospace" fill="#7B1FA2">     ├── AU-01_ledger_anomaly/SKILL.md</text>
+  <text x="1140" y="991" font-size="11" font-family="monospace" fill="#7B1FA2">     └── ...</text>
+
+  <text x="1070" y="1018" font-size="11" font-weight="700" fill="#B33A3A">실행 예: python run.py AM-01 영수증.xlsx</text>
+  <text x="1070" y="1034" font-size="10.5" fill="#7A2828">→ skills/AM-01_*/SKILL.md 읽어서 engine.py로 LLM 호출 → 결과 HTML</text>
+  <text x="1070" y="1052" font-size="10" font-weight="700" fill="#B33A3A">⚠️ 포털 모드 불가 (인증·DB 필수). 단일·배치만.</text>
+
+  <!-- A ↔ B 이동 표시 -->
+  <rect x="800" y="1075" width="500" height="40" rx="6" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2"/>
+  <text x="1050" y="1095" font-size="12" font-weight="700" fill="#7B1FA2" text-anchor="middle">★ SSOT 한 곳만 수정 = A·B 양쪽 자동 동기화</text>
+  <text x="1050" y="1109" font-size="10" fill="#5B2079" text-anchor="middle">A↔B 이동 = 0 변경 (같은 마크다운 두 환경에서 사용)</text>
+
+  <line x1="70" y1="1140" x2="2030" y2="1140" stroke="#E6E2D6" stroke-width="1.5"/>
+
+  <!-- ===================== (3) BOM 5분류 + 8대 철칙 ===================== -->
+  <text x="70" y="1180" font-size="21" font-weight="700" fill="#2D6A4F">&#9315; BOM 5분류 + 8대 철칙 + V3.2 신설 메커니즘</text>
+
+  <!-- BOM 5분류 -->
+  <text x="70" y="1212" font-size="14" font-weight="700" fill="#0A1F14">📦 BOM 부품 5분류 (이중 분류 우선순위: 🟢/🟡 &gt; 🔵 &gt; 🏭 &gt; 🔴)</text>
+  <g font-size="11" text-anchor="middle">
+    <rect x="70" y="1226" width="170" height="62" rx="7" fill="#E8F5E9" stroke="#4CAF50" stroke-width="1.5"/>
+    <text x="155" y="1246" font-weight="700" fill="#0A1F14">🟢 정상</text>
+    <text x="155" y="1266" font-size="10" fill="#3F6B53">발굴물 그대로 적용</text>
+    <text x="155" y="1280" font-size="9.5" fill="#9A9A90">5대 KPI 통과</text>
+
+    <rect x="248" y="1226" width="170" height="62" rx="7" fill="#FFF8E1" stroke="#FFC107" stroke-width="1.5"/>
+    <text x="333" y="1246" font-weight="700" fill="#0A1F14">🟡 재단</text>
+    <text x="333" y="1266" font-size="10" fill="#8A7236">PO 톤·헌법 맞춰 수정</text>
+    <text x="333" y="1280" font-size="9.5" fill="#9A9A90">골격 OK</text>
+
+    <rect x="426" y="1226" width="170" height="62" rx="7" fill="#FFEBEE" stroke="#D32F2F" stroke-width="1.5"/>
+    <text x="511" y="1246" font-weight="700" fill="#0A1F14">🔴 결함</text>
+    <text x="511" y="1266" font-size="10" fill="#B33A3A">걸러내고 적용 거부</text>
+    <text x="511" y="1280" font-size="9.5" fill="#9A9A90">보안·deprecated</text>
+
+    <rect x="604" y="1226" width="170" height="62" rx="7" fill="#E3F2FD" stroke="#1976D2" stroke-width="1.5"/>
+    <text x="689" y="1246" font-weight="700" fill="#0A1F14">🏭 자체 제작</text>
+    <text x="689" y="1266" font-size="10" fill="#2C5A8A">발굴물 대체재 없음</text>
+    <text x="689" y="1280" font-size="9.5" fill="#9A9A90">신규 작성</text>
+
+    <rect x="782" y="1226" width="170" height="62" rx="7" fill="#F3E5F5" stroke="#7B1FA2" stroke-width="2.5"/>
+    <text x="867" y="1246" font-weight="700" fill="#0A1F14">🔵 공통 인프라 ★V3</text>
+    <text x="867" y="1266" font-size="10" fill="#5B2079">N 에이전트가 공유</text>
+    <text x="867" y="1280" font-size="9.5" fill="#9A9A90">비용·세션·로깅</text>
+  </g>
+
+  <!-- 인용 (좌) -->
+  <rect x="70" y="1315" width="820" height="160" rx="9" fill="#0A1F14"/>
+  <text x="104" y="1361" font-size="46" font-weight="700" fill="#C9A961">&#8220;</text>
+  <text x="150" y="1355" font-size="14.5" fill="#F4F1E6">가져다 쓰지 마라. 분해하고, 결함 부분은 걸러내고,</text>
+  <text x="150" y="1381" font-size="14.5" fill="#F4F1E6">검증된 부품만 가려내 조립하라.</text>
+  <text x="150" y="1413" font-size="13" fill="#9FB3A6">발굴 자체가 실력이 아니라 — 발굴 + 검증 + 자기 자산화 +</text>
+  <text x="150" y="1433" font-size="13" fill="#9FB3A6">운영 루프까지 가는 흐름이 실력이다.</text>
+  <text x="868" y="1463" font-size="11" fill="#C9A961" text-anchor="end">— PO의 철학</text>
+
+  <!-- 8대 철칙 (우) -->
+  <text x="920" y="1337" font-size="14" font-weight="700" fill="#2D6A4F">8대 철칙 + V3.2 신설 메커니즘</text>
+  <g font-size="11" fill="#3A3A36">
+    <rect x="920" y="1349" width="216" height="46" rx="6" fill="#FFFFFF" stroke="#E6E2D6"/>
+    <text x="1028" y="1369" font-weight="700" fill="#0A1F14" text-anchor="middle">1 · 발굴물 무신뢰</text>
+    <text x="1028" y="1386" font-size="9" fill="#9A9A90" text-anchor="middle">통째로 가져다 쓰지 않는다</text>
+    <rect x="1148" y="1349" width="216" height="46" rx="6" fill="#FFFFFF" stroke="#E6E2D6"/>
+    <text x="1256" y="1369" font-weight="700" fill="#0A1F14" text-anchor="middle">2 · 부품 단위 선별</text>
+    <text x="1256" y="1386" font-size="9" fill="#9A9A90" text-anchor="middle">검증된 부품만 추출</text>
+    <rect x="1376" y="1349" width="216" height="46" rx="6" fill="#FFFFFF" stroke="#E6E2D6"/>
+    <text x="1484" y="1369" font-weight="700" fill="#0A1F14" text-anchor="middle">3 · 운용 충돌 0건</text>
+    <text x="1484" y="1386" font-size="9" fill="#9A9A90" text-anchor="middle">헌법 위반 부품 거부</text>
+    <rect x="1604" y="1349" width="216" height="46" rx="6" fill="#FFFFFF" stroke="#E6E2D6"/>
+    <text x="1712" y="1369" font-weight="700" fill="#0A1F14" text-anchor="middle">4 · 스무고개 강제</text>
+    <text x="1712" y="1386" font-size="9" fill="#9A9A90" text-anchor="middle">막연한 요청 안 받음</text>
+
+    <rect x="920" y="1403" width="216" height="46" rx="6" fill="#FAF3DE" stroke="#C9A961"/>
+    <text x="1028" y="1423" font-weight="700" fill="#0A1F14" text-anchor="middle">5 · MBO 게이트</text>
+    <text x="1028" y="1440" font-size="9" fill="#8A7236" text-anchor="middle">PO 승인 없이 제조 금지</text>
+    <rect x="1148" y="1403" width="216" height="46" rx="6" fill="#FFFFFF" stroke="#E6E2D6"/>
+    <text x="1256" y="1423" font-weight="700" fill="#0A1F14" text-anchor="middle">6 · 자기검증 금지</text>
+    <text x="1256" y="1440" font-size="9" fill="#9A9A90" text-anchor="middle">소환 메커니즘 4단계</text>
+    <rect x="1376" y="1403" width="216" height="46" rx="6" fill="#FFFFFF" stroke="#E6E2D6"/>
+    <text x="1484" y="1423" font-weight="700" fill="#0A1F14" text-anchor="middle">7 · curl 200 ≠ 동작</text>
+    <text x="1484" y="1440" font-size="9" fill="#9A9A90" text-anchor="middle">Playwright 의무</text>
+    <rect x="1604" y="1403" width="216" height="46" rx="6" fill="#FFFFFF" stroke="#E6E2D6"/>
+    <text x="1712" y="1423" font-weight="700" fill="#0A1F14" text-anchor="middle">8 · 자산화·운영까지</text>
+    <text x="1712" y="1440" font-size="9" fill="#9A9A90" text-anchor="middle">Phase 9 운영 루프</text>
+
+    <!-- V3.2 신설 줄 -->
+    <rect x="920" y="1457" width="900" height="46" rx="6" fill="#FCE9E9" stroke="#B33A3A" stroke-width="1.5"/>
+    <text x="1370" y="1478" font-weight="700" font-size="12" fill="#B33A3A" text-anchor="middle">★ V3.2 신설 — 인프라 분기 A/B / 분리형 SSOT / A↔B 0 변경 이동 / skill-create 공통 영역 동기화</text>
+    <text x="1370" y="1494" font-size="10" fill="#7A2828" text-anchor="middle">선명AX V3.2 분기 작업 반영 — 같은 마크다운으로 두 환경 자유 이동, 두 메타 스킬 자기완결형 통일</text>
+  </g>
+
+  <!-- 9 구동방식 - 하단 -->
+  <text x="70" y="1542" font-size="14" font-weight="700" fill="#2D6A4F">출하 형태 — 9가지 구동 방식 (포털형 ★ V3.0 신설, 단 B에서는 불가)</text>
+  <g font-size="11" font-weight="600" text-anchor="middle">
+    <rect x="70" y="1556" width="190" height="48" rx="6" fill="#FFFFFF" stroke="#CADDD1"/>
+    <text x="165" y="1577" fill="#0A1F14">웹사이트형</text>
+    <text x="165" y="1593" font-size="9" font-weight="400" fill="#9A9A90">단일 에이전트 · A·B</text>
+
+    <rect x="270" y="1556" width="190" height="48" rx="6" fill="#FFFFFF" stroke="#CADDD1"/>
+    <text x="365" y="1577" fill="#0A1F14">데스크톱·로컬</text>
+    <text x="365" y="1593" font-size="9" font-weight="400" fill="#9A9A90">PC 설치 · B 적합</text>
+
+    <rect x="470" y="1556" width="190" height="48" rx="6" fill="#FFFFFF" stroke="#CADDD1"/>
+    <text x="565" y="1577" fill="#0A1F14">모바일앱</text>
+    <text x="565" y="1593" font-size="9" font-weight="400" fill="#9A9A90">스마트폰</text>
+
+    <rect x="670" y="1556" width="190" height="48" rx="6" fill="#FFFFFF" stroke="#CADDD1"/>
+    <text x="765" y="1577" fill="#0A1F14">메신저봇</text>
+    <text x="765" y="1593" font-size="9" font-weight="400" fill="#9A9A90">Slack·카톡</text>
+
+    <rect x="870" y="1556" width="190" height="48" rx="6" fill="#FFFFFF" stroke="#CADDD1"/>
+    <text x="965" y="1577" fill="#0A1F14">확장·애드인</text>
+    <text x="965" y="1593" font-size="9" font-weight="400" fill="#9A9A90">브라우저 확장</text>
+
+    <rect x="1070" y="1556" width="190" height="48" rx="6" fill="#FFFFFF" stroke="#E7D9AE"/>
+    <text x="1165" y="1577" fill="#0A1F14">서버상주(데몬)</text>
+    <text x="1165" y="1593" font-size="9" font-weight="400" fill="#9A9A90">24/7 상주</text>
+
+    <rect x="1270" y="1556" width="190" height="48" rx="6" fill="#FFFFFF" stroke="#E7D9AE"/>
+    <text x="1365" y="1577" fill="#0A1F14">API엔드포인트</text>
+    <text x="1365" y="1593" font-size="9" font-weight="400" fill="#9A9A90">타 시스템 호출</text>
+
+    <rect x="1470" y="1556" width="190" height="48" rx="6" fill="#FFFFFF" stroke="#E7D9AE"/>
+    <text x="1565" y="1577" fill="#0A1F14">스케줄·트리거</text>
+    <text x="1565" y="1593" font-size="9" font-weight="400" fill="#9A9A90">cron · webhook</text>
+
+    <rect x="1670" y="1556" width="220" height="48" rx="6" fill="#FCE9E9" stroke="#B33A3A" stroke-width="2"/>
+    <text x="1780" y="1577" fill="#0A1F14" font-weight="700">포털형 ★ A 강제</text>
+    <text x="1780" y="1593" font-size="9" font-weight="400" fill="#7A2828">1 호스팅 = N 에이전트 (B 불가)</text>
+  </g>
+
+  <!-- 출처 표시 -->
+  <text x="1050" y="1655" font-size="11" fill="#9A9A90" text-anchor="middle">출처: 선명AX 93 에이전트 V3.1 회고 + V3.2 인프라 분기 + skill-create V3.2 통일 (2026-05-27)</text>
+  <text x="1050" y="1672" font-size="10" fill="#B5B5AC" text-anchor="middle">동기화 정책: _devops/sync_meta_skills_checklist.md (수동 적용 — 공통 15섹션 / 부분공통 3 / 특화 6)</text>
+
+</svg>

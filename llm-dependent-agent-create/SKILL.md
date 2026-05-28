@@ -1,0 +1,1541 @@
+---
+description: "LLM 의존형 에이전트 제조 공장 — 막연한 요청을 스무고개로 충분히 기획하고, 공개 저장소·OSS·Hugging Face·사내 자산에서 부품을 발굴·분해·검증하여 검증된 부품만 적용한 뒤, QC로 출하검사한 완성 에이전트를 제조한다. 제조 대상은 LLM(두뇌) 의존형 에이전트 한정, 출하 형태는 구동 방식 9종(사람 개입형 5/무인 자율형 3 + 포털형 1) 중 자동 결정. 단일/배치/포털 3가지 제조 모드 + 인프라 2가지(A Supabase 있음 / B 로컬 .py+API키) 지원 — 둘 다 분리형 SSOT(스킬스/*.md)로 A↔B 이동 자유. 사용자가 '에이전트 만들어', '에이전트 제작', 'llm-dependent-agent-create', '~하는 AI 만들어줘'를 요청할 때 사용. (스킬 제작은 /skill-create)"
+user-invocable: true
+version: "3.5"
+last_updated: "2026-05-28"
+---
+
+<!-- LLM_DEPENDENT_AGENT_CREATE_SPEC_VERSION: V3.5 -->
+<!--
+V3.5 Round 9 (2026-05-28) — 주작-sal-da 진단 7건 일괄 반영 (시스템 등급 4/10 → 목표 7/10)
+  · S2MT1 (Critical) — Phase 2 MBO template에 "인프라: A/B" + "운영 OS" 행 신설. Phase 0 Q-Infra 결과가 Phase 2 MBO에 명시되어 Phase 6c·8 인프라 분기 일관성 확보
+  · S3FN1 (Critical) — Phase 8 6-3.5 신설: Windows 어댑터 7개 룰 자동 검증 체크리스트(tools/verify_windows_adapter.ps1) 본문 코드 박음. Verification Subagent 호출 강제, 자기검증 회귀 차단
+  · S1CP1 (Warning) — "자기완결 원칙" 1줄 정의 양 공장 동기화: 외부 스킬·외부 AI 호출 금지 + 핵심 절차 본문 내장 (Phase 5 5A·5B 패턴이 표준)
+  · S1FN1 (Warning) — skill-create 5초 가이드 트리에 단일/배치/포털 분기 명시. llm-dependent도 가이드 동일 톤
+  · S2PC1 (Warning) — Phase 5→6 게이트 재진입 한도 3회 명시. 3회 후 미통과 시 Phase 0 모드 재선언
+  · S2FN1 (Warning) — 규모 정량 판정 표 이미 V3.1에 명시 (부품 ≤2·라인 ≤300·UI없음·배포형 아님 AND). 본문 확인 후 결함 환각 처리
+  · S3PC1 (Warning) — 게이트 통과 판정 권자 명시: 별도 Verification Subagent (제조 SA 자기 판정 금지). 결과는 Phase 8 출하 보고서 QC 결과 항목에 기록
+  · 출처: /주작-sal-da v4.0 진단 — Critical 2 + Warning High 5 발견. SystemGrade 4/10 + ReportQuality 91/100 분리 보고
+
+V3.5 Round 8 후속 (2026-05-28, /review-evaluate-코어1 Round 1 결함 반영)
+  · Phase 8 출하 절차 6번 재구성 — 6-1 자동 제조 / 6-2 자동 호출 + -SmokeTest 옵션 명시 / 6-3 검증 게이트 4종 / 6-4 실패 시 회귀 (exit 1·2·SmokeTest 실패별 분기)
+  · skill-create 경계표에 "Phase 8 Windows 어댑터 (R7·R8)" 행 신설 — 양 공장 의무 범위 표에서 즉시 판별 가능
+  · skill-create Phase 8 B 인프라 어댑터 점검 "6개 룰" → "7개 룰 + install_shortcut.ps1 사전 검증"로 정정
+  · 출처: review-evaluate-코어1 Round 1 Cross Validator 발견 결함 (Phase 8 절차 미갱신 / 경계표 행 누락 / changelog 룰 수 오기재)
+
+V3.5 Round 8 보강 (2026-05-28) — install_shortcut.ps1 사전 검증 + smoke test (5사례 실전 회고)
+  · install_shortcut.ps1에 `.bat` 한글 echo 사전 검증 단계 추가 (R6 어댑터 룰 1번을 install 게이트에서 강제)
+  · `.bat`에 한글이 검출되면 exit 2 + 위반 라인 출력 + 수정 가이드 안내. 깨진 .bat을 silent 설치하지 않음
+  · 선택적 `-SmokeTest` switch 추가 — 설치 직후 1회 가동 검증 (agent_log.txt 라인 증가 확인, 사이드 이펙트 주의)
+  · install_shortcut.ps1 저장 인코딩 룰 명시 — UTF-8 BOM 의무 (BOM 없으면 한글 description 시 PowerShell 파싱 실패)
+  · `.bat`은 BOM 없는 UTF-8 유지 룰 명시 (BOM 있으면 cmd가 토큰으로 오인)
+  · 출처: 5 사례 실전 검증에서 한글 echo 박힌 .bat 2건이 .lnk만 만들어지고 가동 silently 실패 → 사후 발견 결함
+
+V3.5 Round 7 보강 (2026-05-28) — 바탕화면 바로가기 자동 생성 표준 자산화
+  · Phase 6 Windows 어댑터 체크리스트에 7번 룰 신설 — `.bat`만 만들고 끝나지 않고 `install_shortcut.ps1`을 함께 제조
+  · install_shortcut.ps1 표준 자산 코드 본문 박음 (PowerShell COM WScript.Shell.CreateShortcut 패턴, 적용 조건 4개 + 제외 조건 명시)
+  · Phase 8 출하 절차 6번 신설 — install_shortcut.ps1 자동 호출 (인프라 B + Windows + 사람 수동 트리거 경로 있는 에이전트 한정)
+  · 출처: claude-news-agent 실전 회고 — SKILL.md V3.5 R6에 이 단계가 없어 스킬 실행 후 바탕화면 바로가기가 자동 생성되지 않는 결함 PO 직접 확인
+
+V3.5 Round 6 보강 (2026-05-28)
+  · Medium 3 해결 — A 인프라 SQL 스키마 (usage_log·error_log·feedback) + B 인프라 history.json·error.log 예시 코드 블록 추가
+  · Medium 4 해결 — Phase 0 Q-Infra 직후에 인프라→모드→산출물 ASCII 결정 트리 도식 추가 (A/B × 단일/배치/포털)
+  · 출처: Cross Validator Round 5 96.75점 + PO "보강할 여지가 더 있으면 더 보강" 명령
+
+V3.5 Round 5 보강 (2026-05-28)
+  · Verification Subagent 입력/출력 JSON 스키마 명시 (Medium 2 부분→완전 해결)
+  · 외부 LLM 검증 폴백 표기 (codex 채점 형식 미준수 시 "외부 검증 미실시" 명시 룰)
+  · 출처: Cross Validator Round 4 96.5점 + Medium 2 부분 해결 잔여 지적
+
+V3.5 Round 4 보강 (2026-05-28, /review-evaluate-코어1 + codex 외부 검증 결과 반영)
+  · Phase별 1장 요약표 신설 (입력/작업/출력/완료조건 — Phase 0~9 전체)
+  · skill-create와의 경계 표 신설 (어느 공장으로 가야 하는지 5초 가이드)
+  · Verification Subagent prompt 양식 명문화 (입력·전달 금지·출력 — 자기검증 편향 차단)
+  · 본문 "스무고개" 용어 통일 (V3.5 직후 "열문답" 잔존 4곳 → "스무고개"로)
+  · skill-create Phase 6c dead-link 수정 (스킬은 3단 분해 없음 명시)
+  · 출처: codex 외부 검증 (sk-proj 키) High 2 + Medium 4 + Low 3 지적 반영
+
+V3.5 변경 (2026-05-28) — claude-news-agent 실전 회고 반영 + Phase 1 길이 절반 단축 + 초보자 친화
+  · Phase 1 스무고개 → "열문답": 1a 20→10 라운드, 1b 공통 10→5, 1c 8+6→4+3 (부족 시 추가 라운드로 보강)
+  · 질문 톤 강제 — AI가 한 질문씩 묻기 + 전문 용어 풀이 + 예시 1~2개 동반 (초보자도 답할 수 있게)
+  · Phase 1 산출물에 📡 출력 대상 시스템 명세 (렌더링 방식·컬럼 의미·게시 흐름) 필수 추가 — 회고: 마크다운 raw 노출 + fb_url 컬럼 오용
+  · Phase 1 산출물에 🤖 큐레이션·필터링형 추가 명세 (선정 알고리즘) 필수 추가
+  · BOM 🔵 인프라에 LLM 폴백 체인 모듈 표준 자산 명시 — 단일 모드도 🏭로 필수 포함 (회고: 단일 키 401 멈춤)
+  · Phase 7-3+ "출력 대상 시스템 실제 화면 확인" 신설 — curl 200·dry-run·DB SELECT 자기 검증 모두 사람 눈 확인을 대체할 수 없음
+  · 인프라 B Windows 어댑터 체크리스트 신설 — .bat 한글 echo 금지·pushd %~dp0·ping 대체·PYTHONUTF8 강제
+  · 출처: claude-news-agent (2026-05-28) 실전 제작 + PO 회고 명령 (라운드 축소·초보자 친화·AI가 묻기·전부 반영)
+
+V3.4 변경 (2026-05-28) — 자기완결 원칙 강화 (외부 스킬 호출 제거 + 핵심 절차 내장)
+  · Phase 5 통째 재구성 — 두 레이어 (5A 검토·평가 + 5B 진단·해체)
+  · 5A: review-evaluate 핵심 내장 — 5기준×20=100점 루브릭 + Round 루프 최대 10회 + Cross Validator Subagent
+  · 5B: 주작-sal-da 핵심 내장 — 역방향 분해(Grid), Stage별 카드(진단→개선안→개선→재진단), Stage Gate, 자가 수렴 루프, P0 베이스라인
+  · 외부 스킬(/pro-persona-debate, /주작-sal-da) 호출 의무 제거 — 절차는 본문에 내장
+  · codex CLI 등 외부 AI 호출 명시적 배제 (자기완결 원칙)
+  · Phase 7 Verification 메커니즘 — 외부 스킬 위임 줄 제거, Cross Validator Subagent 직접 호출
+  · Phase 7 QC 파이프라인 표 — 외부 스킬 호출 → 내장 review-evaluate Round 수로 표기
+  · 출처: PO 명령 "전문가 디베이트·주작 스킬 외부 호출 빼되 절차는 본문에 내장, 자기완결적 구조" (2026-05-28)
+
+V3.3 변경 (2026-05-27, V3.2와 동일 일자) — 인프라 명명 통일 I/II → A/B
+  · PO 발음·인지 편의 (로마자 I/II → 알파벳 A/B로 단일 글자 표기)
+  · 본문 36건(II→B) + 26건(I→A) 일괄 치환
+  · skill-create SKILL.md는 I/II 부재로 변경 없음 (인프라 분기 자체가 없음)
+  · 출처: 선명AX V3.3 실전 테스트 중 PO 명명 변경 요청 (2026-05-27)
+
+V3.2 변경 (2026-05-27) — 인프라 분기 (A/B) 신설
+  · Phase 0에 인프라 결정 트리(Q-Infra) 추가 — Supabase 있음(A) / 없음(B — DB 없이 .py+API키)
+  · Phase 1c 포털 모드는 A 강제 (인증·DB 필수)
+  · Phase 6에 B 시나리오 분리형 설계 명시 — engine.py + skills/*.md + run.py 구조
+  · Phase 9 운영 루프는 B에서 로컬 JSON 로그 + 사용자 자체 점검으로 축소
+  · 5요소 100% 충족 B 구현 — engine.py에 self_critique·tool round-trip 이식 + JSON 파일 메모리
+  · SSOT 통일 — 스킬스/{AGENT_ID}_{skill_id}/SKILL.md는 A·B 공통. A↔B 이동 = 0 변경
+  · 출처: 선명AX V3.2 분기 작업 (2026-05-27)
+
+V3.1 변경 (2026-05-25, 동일 일자) — pro-persona-debate Cycle 1 박살 결과 반영
+  · Phase 9 회귀 트리거 수치 임계값 명시 (에러율 5%·응답시간 30초·피드백 5건 등)
+  · Phase 0 모드 판별 3단계 결정 트리 + PO 강제 거부권
+  · Phase 4-5 이중 분류 우선순위 규칙 (🟢/🟡 > 🔵 > 🏭 > 🔴)
+  · Phase 7-0 Verification Agent 소환 메커니즘 4단계
+  · Phase 7 출하 판정 회귀 깊이 결정 표 (Phase 0/2/4/6 4분기)
+  · Phase 5 정량 판정 기준 (부품수·코드라인·UI·배포형)
+  · Phase 7-3 Playwright 자동화 의무 + 수동 폴백 조건
+  · Phase 8 출하 조건에 usage_log 인프라 가동 확인 추가
+  · Phase 6 배치 모드 실행 순서 도식화
+
+V3.0 변경 (2026-05-25) — 선명AX 93개 에이전트 제조 회고를 반영 (출처: _WorkLog/2026_05_25__회고_스킬적용검토_93에이전트.md)
+  · 단일/배치/포털 3-모드 분기 신설 (Phase 1a/1b/1c)
+  · BOM 5분류 — 🔵 공통 인프라 부품 추가
+  · 9번째 구동 방식 — 포털형 (1 호스팅 = N 에이전트)
+  · Phase 6 3단 분해 (6a 에이전트 본체 / 6b 플랫폼 레이어 / 6c 공통 인프라)
+  · Phase 7 4단 분해 (7-1 정적 / 7-2 동적 / 7-3 UI 클릭 / 7-4 한도 시뮬)
+  · Phase 9 신설 — 운영·개선 사이클 (피드백 → Phase 1 회귀)
+  · skill-create 형제 공장과 양방향 (같은 자산 두 포장)
+-->
+
+# /llm-dependent-agent-create — LLM 의존형 에이전트 제조 공장
+
+> **PO의 철학:**
+> "가져다 쓰지 마라. 분해하고, 결함 부분은 걸러내고, 검증된 부품만 가려내 조립하라.
+>  발굴 자체가 실력이 아니라 — 발굴 + 검증 + 자기 자산화까지 가는 흐름이 실력이다."
+
+**필요한 LLM(두뇌) 의존형 AI 에이전트를 막연한 요청 한 줄에서 받아, 완성·검증된 에이전트로 출하하는 메타 스킬 — 에이전트를 만드는 에이전트.**
+
+> **⚠️ 제조 대상 한정 (V3.0):** 이 스킬은 **LLM(두뇌) 의존형 에이전트** — AI 플랫폼에 안 갇히고 자체 실행되며 LLM에 직접 의존하는 독립 에이전트 — 만 제조한다. 출하 형태 = **9가지 구동 방식**(사람 개입형 5 + 무인 자율형 3 + 포털형 1). AI 플랫폼 종속형(서브에이전트)·스킬·훅은 제조 대상이 아니다 — 스킬 제조는 형제 공장 `/skill-create`가 담당한다 (둘은 같은 9-Phase 방식·같은 "분해·검증 후 조립" 철학을 공유하며, 같은 자산이 에이전트로 출하될 수도 스킬로 재포장될 수도 있는 양방향 관계다).
+
+이 스킬은 공개 저장소의 기존 자산을 **통째로 신뢰하지 않는다.** 발굴물을 작업대에 올려 부품 단위로 검증하고, 문제 부분을 걸러낸 뒤 검증된 부품만 적용한다. 그 위에 자체 코드를 얹어 조립하고, QC 출하검사를 통과한 것만 자산으로 등재한다. **출하 후에는 운영 루프**가 돌면서 사용 로그·피드백을 Phase 1로 회귀시켜 다음 사이클을 시작한다.
+
+---
+
+## 공장 비유 (Manufacturing Metaphor)
+
+```
+원자재 입고   →  공개 저장소·OSS·HF·사내 자산에서 부품 발굴
+입고 검사     →  발굴물 5대 KPI 검증
+안전성 진단   →  주작-sal-da 방식 위험도 감사 — 결함 부분 식별
+해체·선별     →  부품 단위 분해 / 결함 부분 걸러내기 / 검증된 부품만 선별
+부품 창고(BOM)→  검증 통과 부품 목록 (5분류: 🟢🟡🔴🏭🔵)
+조립          →  본체·플랫폼·공통인프라 3단 조립
+출하 검사     →  4단 QC (정적·동적·UI클릭·한도시뮬) + 별도 Verification Agent
+출하          →  자산화 (에이전트 등재 + CLAUDE.md 기록)
+운영·개선     →  사용 로그·피드백 → Phase 1 회귀
+```
+
+핵심은 **"부품 선별·조립·운영 루프"** — 공급원에서 부품을 받되 결함은 걸러내고 검증된 부품만 가져다 조립하며, 출하 후에도 피드백을 다음 사이클로 환류시킨다.
+
+---
+
+## Usage
+
+```
+/llm-dependent-agent-create [만들고 싶은 에이전트 설명]
+
+# 예시
+/llm-dependent-agent-create 계약서 위험조항을 자동 탐지하는 에이전트     # 단일 모드
+/llm-dependent-agent-create 회계감사 직능 10개 에이전트 배치 제작        # 배치 모드
+/llm-dependent-agent-create 사내 7직능 N개 에이전트 포털 구축            # 포털 모드
+/llm-dependent-agent-create                                          # 대화 맥락에서 자동 도출
+```
+
+---
+
+## 핵심 원칙 (8대 철칙)
+
+1. **발굴물 무신뢰** — 공개 저장소·사내 자산도 통째로 가져다 쓰지 않는다. 반드시 분해·검증한다.
+2. **부품 단위 선별** — 발굴물 전체가 아니라 검증된 부품(함수·모듈·프롬프트 블록)만 추출한다.
+3. **운용 충돌 0건 — 타협 불가** — PO 글로벌 헌법(한국어 출력·보안 가드·SAL/MBO 자동 감지)을 깨는 부품은 기능이 아무리 좋아도 적용 거부한다.
+4. **스무고개 항상 강제** — 막연한 요청을 그대로 받지 않는다. 모드에 맞춰 묻고 답해 스펙을 외부로 끌어낸다.
+5. **MBO 승인 게이트** — Phase 2 PO 승인 없이 제조(Phase 3 이후) 시작 금지.
+6. **자기검증 금지** — 제조한 에이전트를 제조자가 검증하지 않는다. 별도 Verification Agent를 투입한다.
+7. **"curl 200 ≠ 동작함"** — HTTP 200·파일 생성은 데이터 레이어 KPI일 뿐. 실제 호출·사용자 여정·UI 클릭으로 검증한다.
+8. **자산화·운영까지가 완료** — 만들고 끝이 아니다. 등재 + CLAUDE.md 기록 + 운영 루프 가동까지 해야 출하 완료다.
+
+---
+
+## 출하 형태 — 9가지 구동 방식
+
+이 공장은 **LLM(두뇌) 의존형 에이전트** 한 종(種)만 제조한다. 단, 그 에이전트가 *어디서 어떻게 구동되는지*는 9가지다.
+
+**사람 개입형 (5종)** — 운영 루프에 사람이 개입(시키고·보고·받음)
+
+| 구동 방식 | 적합 조건 |
+|----------|----------|
+| 웹사이트형(웹앱) | 서버 호스팅 → 브라우저 접속 · 단일 에이전트 |
+| 데스크톱·로컬앱형 | PC 설치 · 로컬 파일 접근 · 민감 데이터 |
+| 모바일앱형 | 스마트폰 앱 · 이동 중 사용 |
+| 메신저봇형 | Slack·카톡·Teams 내 봇 · 기존 협업 흐름에 녹임 |
+| 확장·애드인형 | 브라우저 확장 / Notion·Excel 애드인 |
+
+**무인 자율형 (3종)** — 사람 개입 없이 자율 구동
+
+| 구동 방식 | 적합 조건 |
+|----------|----------|
+| 서버상주(데몬)형 | 서버 24/7 상주 · 상시 감시·자동 대응 |
+| API엔드포인트형 | API로 노출 → 타 시스템이 호출 |
+| 스케줄·트리거형 | cron·webhook으로 정해진 때/이벤트 기동 |
+
+**포털형 (1종, V3.0 신설)** — 1 호스팅 = N 에이전트
+
+| 구동 방식 | 적합 조건 |
+|----------|----------|
+| **포털형** | 단일 호스팅에 N개 에이전트 진열 · 카탈로그·직능별 페이지·공통 인증·관리자 콘솔 (선명AX·KD엔지니어링 사례) |
+
+### 구동 방식 결정
+
+```
+LLM(두뇌) 의존형 에이전트를 만든다
+  │
+  ├─ N개 에이전트 호스팅 플랫폼인가? (1 호스팅 = 다수 에이전트)
+  │   YES → 포털형 ★V3.0 신설
+  │
+  ├─ 사람이 운영 루프에 개입하나? (시키고·보고·받음)
+  │   YES → 사람 개입형 — 브라우저:웹사이트형 / PC설치:데스크톱·로컬앱형 /
+  │                       폰:모바일앱형 / 메신저:메신저봇형 / 타 도구 안:확장·애드인형
+  │
+  └─ 사람 없이 자율 구동인가?
+      YES → 무인 자율형 — 상시:데몬형 / 타 시스템 호출:API엔드포인트형 /
+                          정기·이벤트:스케줄·트리거형
+```
+
+판별이 모호하면 Phase 1 스무고개 결과로 결정하고, 그래도 모호하면 PO에게 AskUserQuestion으로 확인한다.
+
+---
+
+## 공장 파이프라인 (Phase 0 → 9, V3.0)
+
+```
+Phase 0  시동       — 무슨 에이전트를? + 제조 모드(단일/배치/포털)?
+Phase 1  요구 발굴   — 1a 단일 / 1b 배치 / 1c 포털 — 모드별 스무고개 ★V3.0 분기
+Phase 2  목표 정의   — MBO 목표서 → PO 승인 ⛔게이트
+Phase 3  발굴       — 공개 저장소·OSS·HF·사내 자산에서 후보 수집
+Phase 4  분해·검증   — BOM 5분류 (🟢🟡🔴🏭🔵) ★V3.0 보강 ★공장의 심장
+Phase 5  설계 검증   — 페르소나 토론으로 부품 조합·아키텍처 검증 (규모별)
+Phase 6  조립·제조   — 6a 본체 / 6b 플랫폼 / 6c 공통 인프라 ★V3.0 3단
+Phase 7  출하 검사   — 7-1 정적 / 7-2 동적 / 7-3 UI 클릭 / 7-4 한도 시뮬 ★V3.0 4단
+Phase 8  자산화·출하 — 등재 + CLAUDE.md 헌법 기록 + 출하 보고서
+Phase 9  운영·개선   — 사용 로그·피드백 → Phase 1 회귀 (루프) ★V3.0 신설
+```
+
+### Phase별 1장 요약표 ★V3.5 후속 신설 (입력 / 작업 / 출력 / 완료 조건)
+
+| Phase | 입력 | 작업 | 출력 | 완료 조건 |
+|:-:|---|---|---|---|
+| **0** | PO 요청 한 줄 | 인프라 판별(A/B) + 모드 판별(단일/배치/포털) + 작업 폴더 확정 | Q-Infra 결과 · 모드 선언 · 작업 폴더 경로 | A/B 결정 ✅ · 모드 결정 ✅ · 폴더 경로 확정 ✅ |
+| **1** | 모드·작업 폴더 | 모드별 스무고개 (1a 10라운드 / 1b 5+N / 1c 4+3+N) | 📐 기획안 · 📡 출력 대상 시스템 명세 · 🤖 큐레이션 선정 알고리즘(해당 시) · 🗺️ 아키텍처 SVG | 모드별 산출물 전부 채워짐 ✅ · 종료 신호 또는 추가 라운드 보강 완료 |
+| **2** | Phase 1 기획안 | MBO 목표서 작성 → PO 승인 게이트 | MBO 목표서 (목적·KPI·성공 기준·5요소·헌법 제약) | PO "승인" 명시 ✅ |
+| **3** | MBO 목표서 | 공개 저장소·OSS·HF·사내 자산에서 후보 발굴 | 발굴 후보 카탈로그 (출처·라이선스·최신성) | 후보 ≥ 3건 또는 "발굴 0건 → 자체 제작" 선언 |
+| **4** | 후보 카탈로그 | BOM 5분류 분해 (🟢🟡🔴🏭🔵) + 이중분류 우선순위 적용 | BOM 표 (부품별 분류·근거·재단 사항) | 모든 부품에 단일 레이블 부여 ✅ · 🔴 결함 분리 ✅ · 배치/포털은 🔵 비어 있지 않음 |
+| **5** | BOM | 5A 검토·평가 (review-evaluate 내장 10 Round) + 5B 진단·해체 (SAL Grid 내장, M·L만) | 5A 100점 · 5B Stage Gate 통과 · Cross Validator 동의 | 5A 100점 + 5B 자가 수렴 + 진입 게이트 체크리스트 통과 ✅ |
+| **6** | Phase 5 통과 BOM + 진입 게이트 통과 | 6a 본체 / 6b 플랫폼(포털만) / 6c 공통 인프라(배치·포털만). 인프라 B는 Windows 어댑터 체크리스트 적용 | 운영 가능한 에이전트 자산 (코드·SKILL.md·페이지·설정) | 자체 dry-run 통과 ✅ · 4-provider tool round-trip 가동 ✅ |
+| **7** | Phase 6 자산 | 별도 Verification Subagent로 7-1 정적 → 7-2 동적 → 7-3 UI 클릭 → 7-3+ 출력 대상 사용자 화면 사람 눈 확인 → 7-4 한도 시뮬 | QC 보고서 · 사용자 여정 KPI 통과 여부 | 자기검증 금지 ✅ · 사람 눈 화면 확인 ✅ · 4단 QC 통과 |
+| **8** | QC 통과 자산 | 등재 + 자산 기록 + CLAUDE.md 헌법 등재 + 운영 로그 인프라 가동 확인 + **바탕화면 바로가기 자동 생성**(B+Windows+수동 트리거 경로 시) + 출하 보고서 | 헌법 1줄 · 운영 로그 첫 1건 · `.lnk` 진입점 · 출하 보고서 | 운영 트리거 임계값 감지 가능 상태 ✅ · 헌법 등재 ✅ · 바탕화면 진입점 검증 ✅ |
+| **9** | 운영 사용 로그·피드백 | 트리거(에러율 5%·응답시간 30초·피드백 5건·사용률 0 30일·비용 가드 3회) 감지 → 회귀 깊이 결정 | 회귀 사이클 또는 폐기/통합 결정 | 자율 루프 — 종료 조건은 폐기/교체 시점까지 무한 |
+
+> ⛔ Phase 0·2의 PO 게이트는 자율 진행 금지 — 반드시 PO 답을 받고 다음으로.
+
+---
+
+## 작동 프로세스 — 사용자 접점 (Runtime Flow)
+
+🗣️ = PO에게 묻고 멈추는 지점 · ⚙️ = 스킬 자율 실행
+
+```
+/llm-dependent-agent-create [요청]  호출
+     │
+🗣️ 접점 1  Phase 0   "무엇을 + 어느 모드(단일/배치/포털)" — 대상·모드 확보
+     │
+🗣️ 접점 2  Phase 1   모드별 스무고개 (1a/1b/1c) → 기획안 + 아키텍처 SVG  ★핵심 상호작용
+     │
+🗣️ 접점 3  Phase 2   MBO 목표서 제시 → PO 승인   ⛔필수 게이트
+     │
+⚙️         Phase 3   발굴 (자율 — 후보 애매 시만 접점)
+⚙️         Phase 4   분해·검증 → BOM 5분류 (자율)
+⚙️         Phase 5   설계검증 페르소나 토론 (자율, 결과 보고)
+     │
+🗣️ 접점 4  Phase 6   구동 방식 확인 (조건부 — 판별 모호 시만)
+     │
+⚙️         Phase 7   QC 4단 출하검사 (자율, 결과 보고)
+     │
+🗣️ 접점 5  Phase 8   출하 보고 + 헌법 등재
+     │
+⚙️         Phase 9   운영·개선 루프 (자율 — 피드백 누적 시 Phase 1 회귀 권고)
+```
+
+### 사용자 접점 5개
+
+| 접점 | 시점 | 묻는 것 | 성격 |
+|:--:|------|--------|------|
+| **1** | Phase 0 | "무엇을 + 어느 모드" | 대상·모드 확보 (인자/맥락에서 도출 가능 시 생략) |
+| **2** | Phase 1 | 모드별 스무고개 | **핵심 — 충분한 기획** (연속 대화) |
+| **3** | Phase 2 | MBO 목표서 승인 | ⛔ 필수 게이트 — 미승인 시 제조 중단 |
+| **4** | Phase 6 | 구동 방식(9종) 확인 | 조건부 — 자동 판별 모호 시만 |
+| **5** | Phase 8 | 출하 보고 확인 | 완료 보고 |
+
+---
+
+## Phase 0. 시동 (Intake)
+
+- 인자가 있으면 그것을 제조 대상으로 한다.
+- 인자가 없으면 대화 맥락에서 "무슨 에이전트를 원하는지 + 인프라(A/B) + 모드(단일/배치/포털)"를 도출한다.
+- 도출 불가 시 PO에게 한 줄 질문으로 확인한다.
+
+### 인프라 판별 — Q-Infra (V3.2 신설) ★ 모드 판별보다 먼저
+
+| 신호 | 인프라 |
+|------|--------|
+| "Supabase 있어" / "사내 포털" / "운영 엔진 + DB" / "Vercel 배포" | **A — Supabase 있음** |
+| "내 PC만" / "API 키만" / "DB 없음" / "USB 배포" / "내부망 공유 폴더" / 인터넷 안 됨 | **B — DB 없음 (.py + API 키)** |
+
+**판별 불가 시 Q-Infra**:
+```
+Q. 다중 사용자가 웹 브라우저로 접속하는 호스팅 인프라(Supabase·Vercel·인증 DB)가 있는가?
+    YES → A — Supabase 있음 (운영 엔진 api/run.py 사용)
+    NO  → B — DB 없음 (로컬 .py + API 키만, 분리형 — engine.py + skills/*.md + run.py)
+```
+
+**인프라 → 모드 → 산출물 결정 트리 ★V3.5 후속 신설 (Medium 4)**
+
+```
+                  ┌────────────────────────┐
+                  │  PO 요청 한 줄 도착     │
+                  └────────────┬───────────┘
+                               │
+                  ┌────────────▼───────────┐
+                  │ Q-Infra: Supabase·     │
+                  │ Vercel·DB 호스팅 있나? │
+                  └─────┬─────────────┬────┘
+                YES     │             │     NO
+                        ▼             ▼
+        ┌─────────────────┐    ┌──────────────────┐
+        │ A — Supabase    │    │ B — DB 없음      │
+        │ 가능 모드: 3개   │    │ 가능 모드: 2개   │
+        └────────┬────────┘    └─────────┬────────┘
+                 │                       │
+   ┌─────────────┼──────────┐            ├─────────────┐
+   ▼             ▼          ▼            ▼             ▼
+ 단일 1a      배치 1b    포털 1c       단일 1a      배치 1b
+   │             │          │            │             │
+   ▼             ▼          ▼            ▼             ▼
+ api/run.py   api/run.py  api/run.py   engine.py    engine.py
+ + 페이지 1    + 페이지 N  + 카탈로그   + skills/    + skills/*
+ + Supabase   + Supabase  + 인증·관리    *.md SSOT    .md SSOT
+ conversations conversations + 공통 인프라 + history.    + history.
+ + skills 표  + skills 표  6c                 json        json
+              + 카탈로그 표  + 폴백 체인     + 폴백 체인  + 폴백 체인
+              + 폴백 체인                    + .bat 어댑터 + .bat 어댑터
+
+ ⛔ B + 포털 요청 시 → A로 승격 또는 1b로 회귀 (자동 차단)
+ ↔ A↔B 무비용 이동: SSOT(스킬스/*.md)가 양쪽에 그대로 적용됨
+```
+
+**인프라가 모드를 제약한다**:
+
+| 인프라 | 가능 모드 | 불가 모드 |
+|:-:|---|---|
+| **A** (Supabase 있음) | 단일 / 배치 / 포털 모두 가능 | — |
+| **B** (DB 없음) | 단일 / 배치 | **포털 ❌** (인증·DB 필수) |
+
+**왜 분리형이 B의 표준인가**: A↔B 간 자산 이동을 무비용으로 만들기 위함. SSOT는 `스킬스/{AGENT_ID}_{skill_id}/SKILL.md` 단일 — A 환경에서는 Supabase에 sync, B 환경에서는 로컬 engine.py가 같은 파일을 직접 읽음. **에이전트가 처음엔 B로 시작했다가 사용자 늘면 A로 승격하기가 0 변경으로 가능.**
+
+### 모드 판별 (V3.0 신설, V3.1 결정 트리 강화)
+
+**1단계 — 키워드 신호 (1차 후보)**
+
+| 신호 | 모드 |
+|------|------|
+| "~하는 AI 만들어줘" / 1건 / 단일 사용처 | **단일 모드** (Phase 1a) |
+| "N개 묶음" / "한 직능 전부" / "표준 템플릿" / 카탈로그 존재 | **배치 모드** (Phase 1b) |
+| "포털" / "허브" / "1 호스팅 = N 에이전트" / 카탈로그 + 인증 + 관리 콘솔 | **포털 모드** (Phase 1c) |
+
+**2단계 — 키워드만으로 판별 불가 시 결정 트리 (V3.1 강제)**
+
+신호어가 모호하거나 PO가 "단일이야"로 강하게 우긴다 해도 다음 3개 질문에 답해 모드를 재판정:
+
+```
+Q1. 만들 에이전트 수가 2개 이상인가?
+    NO  → 단일 (Phase 1a)
+    YES → Q2
+
+Q2. 호스팅이 1개로 공유되는가? (같은 도메인·같은 인증)
+    NO  → 배치 (Phase 1b) — 독립 호스팅 N개
+    YES → Q3
+
+Q3. 공통 인증·페이지 구조·관리자 콘솔이 필요한가?
+    NO  → 배치 (Phase 1b) — 단순 일괄 제작
+    YES → 포털 (Phase 1c) — 플랫폼 레이어 필요
+```
+
+**3단계 — PO 강제 거부권 (V3.1 신설)**
+
+PO가 결정 트리 결과에 동의하지 않고 "단일로 가자"고 우길 경우 — 그래도 진행은 가능하나 출하 보고서에 다음을 명시한다:
+- `mode_override: true`
+- `tree_recommended: {배치/포털}`
+- `po_decision: 단일`
+- `risk: V2.0과 같은 우회 사고 재발 가능` (경고 의무 기록)
+
+이 경고가 있는 상태에서 Phase 9 운영 루프에 진입한 뒤 회귀 트리거(에러율·피드백)가 발동되면 **모드 재선언부터** 다시 시작한다.
+
+모드를 명확히 선언하지 않으면 V2.0처럼 통째 우회되는 사고가 재발하므로, **인자/맥락에서 자동 판별이 안 되면 결정 트리를 반드시 수행하고 결과를 PO에게 확인한다.**
+
+### 첫 질문 (도출 불가 시)
+
+> *"어떤 에이전트를 만들고 싶으십니까? 막연하게 한 줄로 주셔도 됩니다 — 이후 스무고개로 함께 충분히 기획하겠습니다.
+> 그리고 다음 세 가지도 알려주세요:
+> ① 인프라 — Supabase·DB·웹 호스팅이 **있는 환경(A)** 인지, 본인 PC + API 키만 **있는 환경(B)** 인지
+> ② 모드 — 단일(1개) / 배치(N개 묶음) / 포털(1 호스팅 = N개, B에서는 불가)
+> ③ **작업 폴더** — 에이전트를 어느 폴더에 만들지 (예: `G:\내 드라이브\WAAT\new-agent\`)"*
+
+### 작업 폴더 지정 ★V3.4 필수 절차
+
+**Phase 1 진입 전 PO에게 작업 폴더 위치를 반드시 물어 확정한다.** 도출 불가 시 진행 금지.
+
+- 이미 존재하는 폴더면 — git·.env 등 기존 파일 충돌 여부 점검 후 하위 폴더 권고
+- 부모 폴더가 git repo이면 — 하위 폴더로 둘지 분리 repo로 둘지 PO 확인
+- 모든 Phase 산출물(`_design/`·코드·`.env.example` 등)은 이 폴더에 통합 저장
+- 작업 폴더 미지정 상태에서 Phase 2 이후 진행 금지
+
+---
+
+## Phase 1. 요구 발굴 — 모드별 스무고개 (V3.5 — 10라운드 기본)
+
+**막연한 요청을 그대로 제조에 넣지 않는다.** 모드에 맞춰 한 번에 한 질문씩 진행한다.
+(출처: SUNNY AI MAGIC 50 #01 스무고개 브레인스토밍 → V3.5에서 길이 절반으로 단축)
+
+### ★ V3.5 핵심 원칙 — 질문은 AI가 한다 + 초보자 친화
+
+1. **묻는 주체는 AI(스킬)이다.** PO에게 항목 나열을 던져 일방적으로 답하라고 시키지 않는다. AI가 한 질문씩 던지고 → PO가 답하고 → 다음 질문. 1문1답 진행.
+2. **초보자도 답할 수 있는 질문이어야 한다.** 기술 용어를 그대로 쓰지 말고 **풀어쓴 뒤 예시 1~2개**를 동반한다.
+3. **객관식·예시형 우선.** 가능하면 `AskUserQuestion` 도구로 2~4개 선택지 + "Other" 직접 입력 형태. 자유 서술은 정말 자유 답이 필요할 때만.
+4. **10라운드 기본, 부족 시 추가.** 종료 신호(아래)가 안 나오면 라운드를 늘려 보강한다. 절대 채우지 못한 채 Phase 2로 넘어가지 않는다.
+
+질문 톤 예시 (좋은 예 vs 나쁜 예):
+
+| 항목 | ❌ 나쁜 예 (전문 용어 직격) | ✅ 좋은 예 (풀이 + 예시) |
+|---|---|---|
+| 트리거 | "트리거 방식은?" | "이 에이전트가 언제 깨어나면 좋겠어요? ① 매일 같은 시각 ② 사용자가 버튼을 누를 때 ③ 새 글·메일이 도착할 때" |
+| 출력 시스템 | "출력 대상의 렌더링 방식?" | "에이전트가 만든 글이 어디에 보이나요? 그 화면이 마크다운(`#`·`**`)을 예쁘게 꾸며주나요, 아니면 글자 그대로 보여주나요? 예: 워드프레스는 마크다운 OK, 카톡 메시지는 글자 그대로." |
+| 5요소·도구 | "tool round-trip은?" | "에이전트가 외부 정보를 가져와야 하나요? 예: 웹 검색, 파일 읽기, DB 조회. 없으면 '없음'이라고 답해도 됩니다." |
+
+### Phase 1a — 단일 모드 (10라운드 기본 + 부족 시 추가)
+
+> 첫 멘트: *"지금부터 에이전트 만들기 진행합니다. 제가 한 번에 한 질문씩 드릴 거예요. 어려운 용어는 풀어서 묻고 예시도 함께 드릴 테니 편하게 답해 주세요."*
+
+**10라운드 3구간** (10은 기준선 — 종료 신호가 안 나오면 추가 라운드로 보강)
+
+| 구간 | 라운드 | 발굴 대상 |
+|------|:---:|----------|
+| **① 좌표** | 1~4 | 무엇을 자동화하나·언제 깨어나나(트리거)·입력·출력 — 입출력은 "어디서 들어와서 어디로 나가나" 중심 |
+| **② 제약·맥락** | 5~8 | 사용자(누가 받나)·실패 시 어떻게·기존 도구·★출력 대상 시스템 렌더링/스키마★·5요소(자율루프·메모리·도구·자가평가·헌법) |
+| **③ 마무리** | 9~10 | 빠진 곳·차별점 한 줄·다음 단계 동의 |
+
+⚠️ **출력 대상 사전 조사 (V3.5 회고 반영 — 필수)** ②구간에서 반드시 묻는다:
+- "에이전트가 만든 결과물이 보일 화면이 마크다운을 꾸며주나요, 글자 그대로인가요?" (예: WAAT 사이트는 `linkify + \n→<br>`만 — 마크다운 글자 그대로 노출)
+- "결과를 저장할 컬럼/필드 이름이 있나요? 그 이름이 어떤 의미로 사용되고 있나요?" (예: `posts.fb_url`은 페이스북 URL 전용으로 라벨링됨)
+
+### Phase 1b — 배치 모드 (5라운드 공통 + 변주)
+
+N개 에이전트를 1개씩 돌리는 건 비현실적이므로 **공통 + 변주** 구조로 진행한다:
+
+| 단계 | 라운드 | 발굴 대상 |
+|------|:---:|----------|
+| **공통 스무고개** | 1~5 | 카테고리 공통 — 도메인(직능)·공통 트리거·공통 입력/출력·공통 제약·공통 5요소·★출력 대상 시스템 공통★ |
+| **개별 변주** | 6~N | 에이전트별 차이점만 짧게 (각 에이전트당 1~3라운드 — 어떤 점이 다른가) |
+| **카탈로그 수립** | 종합 | N개를 표 1장으로 정리 (코드·이름·차이점·우선순위) |
+
+배치 모드 첫 멘트:
+> *"배치 모드 — N개 에이전트 묶음 제조입니다. 먼저 공통 5라운드로 카테고리 표준을 정한 뒤, 각 에이전트의 차이점만 짧게 변주합니다. 어려운 용어는 풀어서 묻고 예시도 함께 드립니다."*
+
+### Phase 1c — 포털 모드 (4+3+N, A 강제)
+
+⚠️ **인프라 A 필수.** 포털 모드는 다중 사용자·인증·세션·과금 DB가 본질이므로 B(DB 없음) 환경에서는 구현 불가. Phase 0의 Q-Infra가 B였다면 **포털 모드 자동 차단** → 1a(단일) 또는 1b(배치)로 강제 회귀.
+
+선택지 (B + 포털 요청 시):
+1. 인프라를 A로 승격 (Supabase 도입) → 그 후 포털 가능
+2. 1b 배치로 회귀 — 같은 폴더에 N개 도구 모음으로 제조 (인증 없음)
+
+1 호스팅 = N 에이전트 = 플랫폼 레이어 + 공통 인프라가 필수. 다음 3개 묶음을 순차적으로 스무고개:
+
+| 묶음 | 라운드 | 발굴 대상 |
+|------|:---:|----------|
+| **① 호스팅 플랫폼** | 1~4 | 인증 정책·페이지 구조·헤더·관리자 콘솔·도메인·배포 |
+| **② 공통 인프라** | 5~7 | 비용 가드·세션·도구 round-trip·면책·첨부·로깅·피드백·★LLM 폴백 체인★ |
+| **③ 에이전트 카탈로그** | 8~N | N개 에이전트 목록 — Phase 1b의 공통/개별 변주 적용 |
+
+포털 모드 첫 멘트:
+> *"포털 모드 — 1 호스팅에 N개 에이전트를 진열합니다. 호스팅 플랫폼(4라운드) → 공통 인프라(3라운드) → 에이전트 카탈로그 순으로 한 질문씩 드립니다."*
+
+### 종료 신호 / 금지
+
+- **종료 신호**: 모드별 산출물(아래)이 모두 채워진 시점. PO가 *"이건 내가 던졌어도 못 만들었을 질문"*이라 느끼는 라운드가 누적되면 깊이 충분.
+- **부족 신호 → 라운드 추가**: 산출물 항목 중 비어 있는 게 있거나 PO 답변이 "잘 모르겠다"·"적당히"로 끝났으면 **그 항목만 짚어 1~3 라운드 추가 질문**. 10라운드 채웠다는 이유로 강제 종료 금지.
+- **금지**: 라운드 중간에 *"바로 답 줘"*로 건너뛰지 않는다 — 막연한 스펙으로 회귀한다.
+
+### Phase 1 산출물
+
+**모든 모드 공통**:
+- 📐 **에이전트 기획안** — 텍스트 (목적·트리거·입출력·제약·실패모드·사용자·차별점·아키텍처·필요 부품·잠정 구동방식)
+- 📡 **출력 대상 시스템 명세 ★V3.5 신설 필수** — 결과물이 보일 시스템의 ① 렌더링 방식 (plain/markdown/HTML) ② 사용할 컬럼·필드의 의미와 라벨 ③ 게시·저장 흐름. **이 명세 없이 Phase 6 진입 금지.** (회고 사유: claude-news-agent에서 마크다운 raw 노출 + `fb_url` 컬럼 오용 사고)
+- 🤖 **큐레이션·필터링형 추가 명세** — 후보 다건 중 선택·필터링하는 에이전트라면 **선정 알고리즘/기준**을 기획안에 명시 (1순위·2순위 기준, 동률 해소 규칙). 디폴트 "첫 후보"는 무작위 선택과 같다.
+- 🗺️ **아키텍처 SVG** — `_design/{에이전트명}_architecture.svg` (관계도 + 흐름도) — `/diagram-기본` 호출
+
+**배치/포털 모드 추가**:
+- 📋 **에이전트 카탈로그** — N개 에이전트 표 (코드·이름·차이점·우선순위)
+- 🏗️ **플랫폼·인프라 명세** — 포털 모드만 (인증·페이지·관리자·비용가드·세션 등)
+
+> 출처: SUNNY AI MAGIC 50 #22 — "반복이 보이는 순간 시각화하고, 시각화한 순간 스킬로 박는다."
+
+---
+
+## Phase 2. 목표 정의 — MBO 목표서 + 승인 게이트
+
+Phase 1 기획안을 MBO 목표서로 구조화하여 PO에게 제시한다. (출처: mbo-천상)
+
+이 단계에서 에이전트 **규모(S/M/L)를 확정**한다. 배치/포털 모드는 자동으로 L (배포형·다수 에이전트·호스팅) 판정.
+
+```markdown
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  에이전트 제조 목표서 — {에이전트명/카탈로그명}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## 제조 대상
+{Phase 1 기획안 요약}
+인프라     : A (Supabase 있음) / B (DB 없음, .py + API 키)  ★V3.5 R9 신설 — Phase 0 Q-Infra 결과 명시
+제조 모드 : 단일 / 배치(N개) / 포털(N개 + 플랫폼)
+구동 방식 : {9종 중 1}
+에이전트 규모 : {S / M / L}
+운영 OS    : Windows / macOS / Linux / Cloud (Phase 8 인프라 B Windows 어댑터 적용 조건)
+
+## 죽이는 수작업 (Pain Point)
+| 현재 (AS-IS) | 에이전트 도입 후 (TO-BE) |
+
+## 측정 지표 (KPI)
+| 지표 | 목표값 | 측정 방법 |
+( ※ 반드시 사용자 여정 KPI 1개 이상 포함 — "파일 생성"은 데이터 KPI일 뿐 )
+( ※ V3.0: 비용/보안/컴플라이언스 KPI 각 1개 이상 포함 권장 )
+
+## 제조 계획
+| Phase | 작업 | 예상 결과 |
+
+## 리스크
+| 리스크 | 대응 |
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+이 목표를 승인하시겠습니까?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+⛔ **PO 승인 없이 Phase 3 이후 진행 절대 금지.** PO가 수정 요청 시 목표서를 고쳐 재제시.
+
+---
+
+## Phase 3. 발굴 — 공개 저장소·OSS·HF·사내 자산 (전방위)
+
+이미 잘 만들어진 것을 찾는다. 시간은 PO만이 만들 수 있는 부분에 쓴다.
+(출처: SUNNY AI MAGIC 50 #38 도구 발굴 / find-skills-기본)
+
+### 발굴 출처 카탈로그 (V3.0 — 사내 자산 추가)
+
+| 계층 | 출처 | 발굴 방법 |
+|------|------|----------|
+| **Claude 생태계** | skills.sh · revfactory/skills · GitHub `awesome-claude-code` | `npx skills find "키워드"` · WebSearch |
+| **일반 OSS** | GitHub · npm · PyPI · `awesome-*` 리스트 | WebSearch + WebFetch |
+| **ML 모델** | Hugging Face | WebSearch "huggingface {도메인}" |
+| **MCP** | modelcontextprotocol/servers · MCP 마켓플레이스 | WebSearch |
+| **커스텀 자산** | `~/.claude/agents/` · `~/.claude/skills/` | Glob + Read |
+| **사내 자산 ★V3.0** | 직능 PPTX·도메인 표준 양식·기존 분석 산출물·조직 데이터 | Read + 도메인 전문가 인터뷰 |
+
+> KD엔지니어링 9칸 사례가 표본: Docling·YOLOv8·RAGFlow처럼 **GitHub Stars가 명시된 검증된 OSS**만 부품 후보. 사내 자산도 출처·작성자·최신성을 KPI로 채점한다 (5대 KPI는 사내 자산에도 동일 적용).
+
+후보 0개 → Phase 4의 5대 KPI 채점·분해를 건너뛰고, BOM을 "전부 자체 제작 + 🔵 공통 인프라"로 확정한 뒤 Phase 6 진행.
+
+---
+
+## Phase 4. 분해·검증 — "정밀 선별" ★공장의 심장
+
+**발굴물을 통째로 신뢰하지 않는다.** 작업대에 올려 부품 단위로 검증하고, 결함은 걸러낸 뒤 검증된 부품만 선별한다.
+
+### 4-1. 입고 검사 — 후보별 5대 KPI 채점
+
+| 지표 | 합격선 | 측정 |
+|------|--------|------|
+| **명료성** | Read 1회 5분 내 이해 | 사용 시점·절차·예시 존재 |
+| **운용 충돌** | **0건 — 타협 불가** | 한국어 출력·보안 가드·SAL/MBO 자동감지 위반 0 |
+| **최신성** | 6개월 이내 업데이트 | 커밋·릴리스·작성 날짜 |
+| **의존성 부담** | npm/pip 추가 1개 이하 또는 검증된 메이저 OSS | 의존성 트리 |
+| **검증 가능성** | 결과물 객관 검증 가능 | Verification Agent 투입 가능 여부 |
+
+5개 중 4개 미만 → 후보 폐기 또는 fork. **"운용 충돌 0건"은 어떤 경우에도 타협 불가.**
+
+### 4-2. 부품 단위 분해
+
+후보를 통째로 채택하지 않는다. **함수·모듈·프롬프트 블록·설정 단위로 쪼개** 각각을 분류한다.
+
+### 4-3. 안전성 진단 (주작 방식) → 걸러내기
+
+발굴물을 위험도·안전성 관점에서 감사 (주작-sal-da 방식). 다음은 발견 즉시 제거:
+- `eval()`·`exec()`·검증 없는 shell 직접 실행
+- 하드코딩된 시크릿·API 키·절대경로
+- PO 보안 가드 위반 (`G:\내 드라이브\` 무단 접근, `.env` 노출 등)
+- deprecated 라이브러리·API 의존
+- 영어 강제 출력 등 한국어 운용 규칙 위반
+- `href` 없는 버튼·죽은 링크 (UI 에이전트의 경우)
+- 1년 이상 미유지보수 코드
+
+### 4-4. BOM 산출 — 5분류 (V3.0 보강) ★
+
+```
+📦 BOM — Bill of Materials (선별 부품 목록)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[🟢 정상 — 그대로 적용]
+  • {부품명} ← {출처}:{경로} | 용도: ___
+
+[🟡 재단 후 적용]
+  • {부품명} ← {출처} | 재단 내용: ___
+
+[🔴 걸러냄 — 적용 거부]
+  • {부품명} ← {출처} | 사유: {보안위반/deprecated/충돌}
+
+[🏭 자체 제작 필요]
+  • {부품명} | 사유: 발굴물에 검증된 대체재 없음
+
+[🔵 공통 인프라 — N 에이전트가 공유] ★V3.0 신설
+  • {부품명} | 적용 범위: {몇 개 에이전트} | 횡단 관심사: {비용·세션·도구·면책·로깅·피드백}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
+
+### 4-5. 이중 분류 규칙 (V3.1 신설 — 🔵 ∩ 🏭 교집합 처리)
+
+한 부품이 여러 분류에 동시 해당할 수 있다. 다음 우선순위 규칙으로 단일 레이블 부여:
+
+```
+🟢/🟡  >  🔵  >  🏭  >  🔴
+```
+
+**판정 절차**:
+1. **출처 우선** — 발굴물에서 가져온 것이면 🟢/🟡 (재단 여부로 갈림). 출처가 외부면 무조건 🟢/🟡 분류가 1순위.
+2. **범위 우선** — 자체 제작이지만 N 에이전트가 공유한다면 🔵 (배치/포털 모드만). 단일 모드에서는 🔵 불가.
+3. **신규 제작 단독 사용** — 🏭
+4. **결함** — 🔴 (다른 분류와 동시 적용 불가, 항상 거부)
+
+**예시**:
+- 비용 가드 코드를 자체 제작했고 93 에이전트가 모두 쓴다 → **🔵** (🏭 아님)
+- 비용 가드를 PyPI 라이브러리로 가져와 그대로 적용 → **🟢** (🔵 아님)
+- 단일 에이전트 전용 OCR 코드를 자체 제작 → **🏭** (🔵 아님)
+- 단일 에이전트가 OSS OCR 라이브러리 가져와 한국어 폰트만 추가 → **🟡** (🏭 아님)
+
+BOM 작성자는 한 부품을 두 분류에 동시 기입하지 않는다 — 단일 레이블만.
+
+🔵 공통 인프라 부품의 예 (선명AX 93개 + claude-news-agent 사례):
+- 비용 가드 3중 (per_run / per_user_monthly / monthly)
+- 세션 HMAC + role 기반 권한 + 회원가입 승인
+- 4-provider tool round-trip (Anthropic/OpenAI/Gemini/xAI 공통 8 도구)
+- **LLM 폴백 체인 모듈 ★V3.5 신설 표준 자산** — 단일 키 401/402/429/credit 한도 시 자동 폴백 (예: `llm_providers.py` Claude→Gemini→GPT→Grok). 인프라 A·B·단일·배치·포털 **모든 모드에서 필수**. (회고 사유: claude-news-agent 첫 실행 시 ANTHROPIC_API_KEY 401로 전체 멈춤 — 폴백 추가 후 정상 작동)
+- 면책·디스클레이머 정책
+- 첨부 처리 (Vercel 4.5MB → Storage signed URL 우회)
+- 사용 로그·피드백·관리자 콘솔
+
+배치/포털 모드는 🔵가 반드시 채워진다 — 비어 있다면 Phase 1c를 다시 점검한다.
+
+**단일 모드 예외 (V3.5)**: 단일 모드는 원래 🔵 불가지만 **LLM 폴백 체인 모듈**만은 단일 모드에서도 🏭(자체 제작)로 분류하여 반드시 포함한다. 단일 키 의존은 첫 출하 직후 멈춤 사고를 부른다.
+
+---
+
+## Phase 5. 설계 검증 — 자기완결 절차 (V3.4)
+
+### ★ 자기완결 원칙 정의 (V3.5 R9 — 두 공장 동기화)
+
+**자기완결(Self-contained)이란**: 본 스킬이 작동하는 동안 다음 3가지를 모두 만족하는 상태.
+1. **외부 스킬 호출 금지** — `/pro-persona-debate`·`/주작-sal-da`·`/review-evaluate` 등 다른 user-invocable 스킬을 의무로 호출하지 않는다. 핵심 절차는 본문에 직접 내장.
+2. **외부 AI(가족 외 LLM) 호출 금지** — codex CLI(GPT)·Gemini API·Grok 등 Claude 외 LLM을 의무 흐름에 두지 않는다. (단 Phase 7 외부 LLM 교차 검증은 *선택적 외부 게이트*로 제한, 미실시 폴백 명시)
+3. **내장 Subagent로 검증** — 검증·평가는 `Agent(subagent_type=..., model="sonnet")` Cross Validator Subagent를 본 스킬이 직접 띄워 수행. 외부 스킬에 위임하지 않는다.
+
+이 정의는 형제 공장 `/skill-create`와 한 글자 변경 없이 동일 적용된다.
+
+⚠️ **V3.4 변경**: V3.3까지 `/pro-persona-debate` + `/주작-sal-da` 외부 호출 의무였으나, **자기완결 원칙** 적용으로 두 스킬의 핵심 절차를 본문에 내장. 외부 스킬 의존 제거 + 외부 AI(codex CLI 등) 호출 금지.
+
+**Phase 5는 두 레이어 — 5A 검토·평가 + 5B 진단·해체**. S 규모는 5A만, M·L은 둘 다.
+
+---
+
+### 📋 Phase 5A. 검토·평가 (review-evaluate 핵심 내장)
+
+#### 5A-1. 평가 대상
+Phase 1~4 산출물 — 📐 `plan.md` · 🗺️ 아키텍처 SVG · 📦 `bom.md` · (배치/포털) 카탈로그·플랫폼 명세
+
+#### 5A-2. 5기준 루브릭 (각 20점 = 100점)
+
+| 기준 | 만점 조건 | 감점 |
+|---|---|---|
+| **목적 충족** | Pain Point가 산출물에 명확히 반영 | 항목당 -3 |
+| **품질** | 설계 일관성·아키텍처 명료성·BOM 분류 정확 | 항목당 -3 |
+| **리스크** | 실패 모드 + 대응 명시·5요소 누락 0 | 항목당 -4 |
+| **실행성** | Phase 6 조립 시 즉시 진행 가능 | 항목당 -3 |
+| **헌법 준수** | 한국어·보안·자기완결·금지 안티패턴 0 | 항목당 -4 |
+
+#### 5A-3. Round 루프 (최대 10회)
+1. **Cross Validator Subagent 호출** — `Agent(subagent_type="general-purpose", model="sonnet", mode="auto")`
+2. 산출물 + 루브릭 + 사양 대조 지침 전달 (제조 의도 비공개 — 편향 차단)
+3. 점수 + 개선 권고 반환
+4. 100점 미달 시 권고 반영 → Round +1
+5. 매 Round 별도 Cross Validator 호출 (자기검증 금지)
+6. 100점 도달 또는 한도 도달 시 종료
+
+#### 5A-4. 사양-구현 대조
+- Phase 1 기획안 KPI가 산출물에 반영됨
+- Phase 2 MBO 측정 지표 누락 0
+- 글로벌 헌법 (`~/.claude/CLAUDE.md`) 위반 0
+
+---
+
+### 🔬 Phase 5B. 진단·해체 (SAL Grid 핵심 절차 내장) ★V3.4 신설
+
+**review-evaluate(점수 매기기)와 다른 가치 — 산출물을 부품 단위로 해체하고 의존성·결함 지점을 카드별 진단.** M 규모 이상 적용.
+
+#### 5B-1. 역방향 분해 — Grid 완성 (5단계)
+
+```
+[1] 구성요소 목록 파악     — BOM 부품 목록 활용
+[2] 진단 Area 확정          — 4~9개 선택 (보안·운영·콘텐츠·인증·DB·성능 등)
+[3] 구성요소 × Area 매트릭스 — 관련성 ≥ 0.6 셀만 유효 진단 단위
+[4] 의존성 분석             — Stage 번호 (1, 2, 3...) + Stage 명칭
+[5] SAL ID 확정             — S{stage}{AREA}{level} (예: S1SE1 = Stage1·보안·Level1)
+```
+
+#### 5B-2. Stage별 카드 처리 (의존성 순)
+
+각 카드 = **진단 → 개선안 → 개선 실행 → 재진단** (한 카드에서 완결)
+
+| 단계 | 내용 |
+|---|---|
+| **진단** | Status (Pass/Warning/Danger/Fail) + Issues + Evidence + Impact |
+| **개선안** | Plan + Priority + Expected Effect |
+| **개선** | 실행 + 적용 + Content |
+| **재진단** | Re-status + Final Verdict + Remarks |
+
+#### 5B-3. Stage Gate (다음 Stage 진입 조건)
+- [ ] 현재 Stage 모든 카드 Final Verdict 확정
+- [ ] Fail 카드 0
+- [ ] 다음 Stage 의존성 충족
+
+#### 5B-4. 자가 수렴 재진단 루프
+Re-status가 Danger·Warning(미허용)이면 같은 카드에서 **재개선 → 재진단** 반복. Pass 또는 Acceptable까지 수렴.
+
+#### 5B-5. P0 런타임 베이스라인 (코드 산출물 한정, 선택)
+에이전트 코드가 있다면 (Phase 6 이후):
+- 빌드 검증 (`py_compile`·`node --check`)
+- 임포트 검증 (모듈 로드 성공)
+- 스모크 테스트 (최소 1회 호출)
+- 보안 헤더·스키마 일관성·환경변수 점검
+
+---
+
+### Phase 5 규모별 강도
+
+| 규모 | 5A (review-evaluate) | 5B (진단·해체) |
+|---|---|---|
+| **S (작음)** | 3 Round + 1 Validator | 스킵 |
+| **M (중간)** | 5 Round + 1 Validator | Area 4개 + Stage 1~2 |
+| **L (배포형/포털)** | 10 Round + 2 Validator 병렬 | Area 6~9개 + Stage 1~N + 의존성 완전 분석 + P0 베이스라인 |
+
+배치/포털 모드는 자동 L.
+
+### Phase 5 외부 의존 명시적 배제 (V3.4)
+
+❌ codex CLI 등 외부 AI 호출 (GPT/Gemini/Grok/Perplexity)
+❌ `/pro-persona-debate` 호출
+❌ `/주작-sal-da` 호출
+✅ Claude Code 내장 `Agent` 도구만 사용
+
+### Phase 5 결과 → Phase 6 진입
+
+- 5A 100점 + 5B Stage Gate 통과 → Phase 6 즉시 진행
+- 한도 도달 시 → PO에게 점수·잔여 이슈 보고 → 진입 여부 결정
+
+---
+
+## Phase 6. 조립·제조 — 3단 (V3.0)
+
+확정된 구동 방식(9종 중 1)에 맞춰 조립한다. **3단 분해로 진행** — 모드에 따라 6b·6c는 생략 가능.
+
+### Phase 6a — 에이전트 본체 (모든 모드 공통)
+
+- **LLM(두뇌)** — 추론·계획·판단 엔진 (LLM API 연결)
+- **자율 루프** — 인지→계획→판단→실행→평가, 목표 달성까지 반복 (ReAct 등)
+- **메모리** — 단기(컨텍스트) + 장기(외부 저장소 — 로컬·DB·벡터·클라우드)
+- **도구** — 외부에 영향을 미치는 수단 (API·코드·브라우저)
+- **목표** — 행동의 방향과 종료 기준
+
+**5요소를 모두 갖춘다 — 하나라도 빠지면 에이전트가 아니다.**
+
+조립 원칙:
+- 🟢 정상 부품은 출처를 주석으로 명시하고 그대로 적용
+- 🟡 재단 부품은 PO 톤·헌법에 맞춰 수정 후 적용
+- 🏭 자체 부품은 신규 작성
+- 🔴 결함 부품 자리는 자체 제작으로 메운다 — **절대 걸러낸 것을 되살리지 않는다**
+
+### Phase 6b — 플랫폼 레이어 (V3.0 신설, 포털 모드만)
+
+1 호스팅 = N 에이전트일 때 본체와 별개로 구축해야 하는 레이어:
+
+- **인증·세션** — 로그인, 회원가입 승인, role 기반 권한, 세션 HMAC
+- **페이지 구조** — 카탈로그·직능별·개별 페이지, 헤더·드롭다운
+- **관리자 콘솔** — 피드백·승인·사용 통계
+- **호스팅 인프라** — 도메인·CDN·환경변수·시크릿
+- **검색 비노출** (필요 시 noindex), **사이트 비번 게이트** (필요 시 middleware)
+
+### Phase 6c — 공통 인프라 부품 (V3.0 신설, 배치/포털 모드)
+
+🔵 BOM 부품을 결합한다:
+- 비용 가드 (per_run / per_user_monthly / monthly 등 다중)
+- 4-provider tool round-trip (도구 명세 공통화)
+- 면책·디스클레이머 정책
+- 첨부·파일 업로드 (크기 한도·Storage 우회)
+- 사용 로그·관리자 모니터링·피드백 채널
+
+### Phase 6 모드별 실행 순서 (V3.1 명시)
+
+```
+단일 모드 (1a):  6a (1회) → Phase 7
+배치 모드 (1b):  6c (공통 인프라 1회 선구축) → 6a × N회 (각 에이전트 본체) → Phase 7
+포털 모드 (1c):  6b (플랫폼 레이어) → 6c (공통 인프라) → 6a × N회 (개별 에이전트) → Phase 7
+```
+
+**왜 6c·6b가 6a보다 먼저인가**: 공통 인프라가 미구축된 상태에서 6a를 N회 돌리면 각 에이전트가 임시방편으로 인증·로깅·비용가드를 자체 구현하게 됨 → 출하 후 통합 시 충돌. 인프라 우선 후 본체 조립.
+
+### Phase 6 인프라별 패키징 구조 (V3.2 신설 — A vs B 분리)
+
+**A 인프라 (Supabase 있음) — 운영 엔진 + DB 모델**
+```
+웹사이트/
+├── api/run.py                          ← 운영 엔진 (LLM 호출·tool round-trip·self_critique·비용 가드)
+├── pages/{NEW_CODE}.html               ← 에이전트별 페이지
+├── _data/agents.json                   ← 카탈로그 (정적)
+└── skills/{NEW_CODE}.zip               ← 다운로드용 패키지
+
+Supabase
+├── agents 테이블                       ← agent_id, system_prompt(=SKILL.md 본문), skills 배열
+├── skills 테이블                       ← 도메인 스킬 + 공통 도구 spec
+├── conversations 테이블                ← 장기 메모리 (member_id별)
+├── usage_log + critique_log            ← 비용·자가평가·재생성 로그
+└── members, cost_limit                 ← 인증·비용 가드
+
+SSOT
+└── 스킬스/{AGENT_ID}_{skill_id}/SKILL.md   ← 마크다운 원본 (sync_skills.py가 Supabase로 동기화)
+```
+
+**B 인프라 (DB 없음) — 분리형 패키지 (engine + skills + run)**
+```
+{도구함_이름}/                          ← zip 또는 폴더로 배포 (USB·share drive·이메일)
+├── README.md
+├── .env.example                        ← ANTHROPIC_API_KEY + GEMINI/OPENAI/GROK 폴백 키 슬롯
+├── llm_providers.py                    ★V3.5 LLM 폴백 체인 (Claude→Gemini→GPT→Grok 401·429·credit 자동 폴백)
+├── engine.py                           ← LLM 호출·tool round-trip·self_critique (V3.1 패턴 이식)
+├── run.py                              ← 진입점 — python run.py {AGENT_CODE} {input}
+├── run-once.bat                        ← Windows 더블클릭 진입점 (V3.5 어댑터 룰 적용 ↓)
+├── history.json                        ← 장기 메모리 (V3.2 — 자동 생성·누적, JSON 파일)
+└── skills/                             ← SSOT 마크다운 (A·B 공통 구조)
+    ├── AM-01_voucher_classify/SKILL.md
+    ├── AU-01_ledger_anomaly/SKILL.md
+    └── ...
+```
+
+### ★ 인프라 B Windows 어댑터 체크리스트 (V3.5 신설 — claude-news-agent .bat 인코딩 사고)
+
+Windows cmd는 `.bat` 파일을 기본 시스템 코드페이지(한국: cp949/MS949)로 읽는다. UTF-8(BOM 없음) `.bat`에 한글이 있으면 줄 디코딩이 깨져 `'위' is not recognized as an internal or external command` 같은 토큰 오류 폭주.
+
+**B 인프라 Windows `.bat` 작성 의무 룰**:
+1. **`.bat` 내 한글 echo·주석 금지** — 모든 사용자 메시지는 영문 (예: `echo Done.`, `echo [ERROR]`)
+2. **한글 경로 하드코딩 금지** — `cd /d "G:\내 드라이브\..."` 대신 `pushd "%~dp0"` (.bat 자기 위치로 자동 이동)
+3. **`timeout` → `ping -n N 127.0.0.1 > nul`** — `timeout`은 stdin 리디렉션 환경에서 "Input redirection is not supported"로 실패
+4. **PYTHONIOENCODING/PYTHONUTF8 강제** — Python 호출 전 `set PYTHONIOENCODING=utf-8` + `set PYTHONUTF8=1`
+5. **`chcp 65001 > nul`** — Python stdout이 한글일 때 콘솔 표시용 (Python 내부에서는 위 PYTHONUTF8이 본질)
+6. **Python 스크립트는 stdout/stderr UTF-8 재구성** — `sys.stdout.reconfigure(encoding="utf-8", errors="replace")` 첫 줄 근처에
+7. **★V3.5 R7 신설 — 바탕화면 바로가기 자동 생성 의무** — `.bat` 만 만들고 끝나지 않는다. **`install_shortcut.ps1`을 함께 제조하여 Phase 8 출하 시 자동 실행**, 바탕화면에 `.lnk` 진입점을 생성한다. 사용자가 매번 .bat 파일을 폴더에서 찾아 더블클릭하지 않도록. (회고 사유: claude-news-agent에서 SKILL.md 본문에 이 단계가 없어 PO가 스킬 실행 후 사후에 PowerShell COM으로 수동 추가)
+
+검증: `cmd /c "your.bat"`을 cmd 환경에서 직접 실행했을 때 PowerShell과 동일하게 작동하는지 반드시 확인. PowerShell에서 통과해도 cmd(=더블클릭 환경)에서 실패할 수 있다.
+
+### ★ install_shortcut.ps1 표준 자산 (V3.5 R7 신설, R8 사전 검증 + smoke test)
+
+인프라 B + Windows + 사람이 더블클릭할 진입점이 있는 에이전트(스케줄·트리거형 / 데스크톱·로컬앱형)는 다음 파일을 폴더 구조에 표준 포함:
+
+```powershell
+# install_shortcut.ps1 — 바탕화면 바로가기 자동 생성 + 사전 검증 + 선택적 smoke test
+# 사용: PowerShell에서 .\install_shortcut.ps1 또는 Phase 8 출하 시 자동 실행
+
+param(
+    [string]$ShortcutName = "{AGENT_DISPLAY_NAME}",        # 사람이 읽을 이름 (한글 가능 — .lnk 파일명은 한글 OK)
+    [string]$TargetBat    = "run-once.bat",                # 같은 폴더의 .bat 진입점
+    [string]$IconResource = "%SystemRoot%\System32\shell32.dll,167",
+    [string]$Description  = "{AGENT_SHORT_DESCRIPTION}",
+    [switch]$SmokeTest                                     # ★R8: 설치 직후 1회 가동 검증 (사이드 이펙트 주의)
+)
+
+$ProjectDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
+$TargetPath   = Join-Path $ProjectDir $TargetBat
+$Desktop      = [Environment]::GetFolderPath('Desktop')
+$ShortcutPath = Join-Path $Desktop "$ShortcutName.lnk"
+
+if (-not (Test-Path $TargetPath)) {
+    Write-Error "Target .bat not found: $TargetPath"
+    exit 1
+}
+
+# ★ R8 사전 검증 — .bat 안의 한글 echo·주석 검출 (cmd cp949 디코딩 사고 방지)
+# Why: V3.5 R6 어댑터 룰 1번("`.bat` 내 한글 echo 금지")이 명시돼 있어도 PO·자동 생성기가 위반할 수 있다.
+#      위반 시 .lnk는 정상 만들어지지만 .bat 가동 단계에서 토큰 디코딩 깨져 silently 실패한다.
+#      install_shortcut.ps1이 이 위반을 막는 마지막 게이트.
+$batBytes   = [System.IO.File]::ReadAllBytes($TargetPath)
+$batContent = [System.Text.Encoding]::UTF8.GetString($batBytes)
+$hangulPattern = "[가-힯ᄀ-ᇿ㄰-㆏]"
+if ($batContent -match $hangulPattern) {
+    $hangulLines = ($batContent -split "`n") | Where-Object { $_ -match $hangulPattern }
+    Write-Error "Hangul detected in $TargetPath (V3.5 R6 rule 1 violation). cmd will fail with cp949 decoding."
+    Write-Host "Offending lines:"
+    $hangulLines | ForEach-Object { Write-Host "  > $_" }
+    Write-Host "Fix: replace Hangul echo/comment with English (e.g., 'echo OK' instead of 'echo 완료')."
+    exit 2
+}
+
+# 바로가기 생성
+$WshShell = New-Object -ComObject WScript.Shell
+$Shortcut = $WshShell.CreateShortcut($ShortcutPath)
+$Shortcut.TargetPath       = $TargetPath
+$Shortcut.WorkingDirectory = $ProjectDir
+$Shortcut.IconLocation     = $IconResource
+$Shortcut.Description      = $Description
+$Shortcut.Save()
+
+if (-not (Test-Path $ShortcutPath)) {
+    Write-Error "Failed to create shortcut"
+    exit 1
+}
+Write-Host "OK: $ShortcutPath"
+
+# ★ R8 선택적 smoke test — 설치 직후 .lnk를 1회 트리거하여 가동 검증
+# 주의: LLM API 호출·DB INSERT 등 사이드 이펙트가 있는 에이전트는 -SmokeTest 사용 시 1회 실 호출됨.
+#      dry-run 옵션이 있는 .bat이거나 안전한 경우에만 -SmokeTest 권장.
+if ($SmokeTest) {
+    Write-Host "Smoke test: triggering shortcut..."
+    $logPath = Join-Path $ProjectDir "agent_log.txt"
+    $beforeLines = if (Test-Path $logPath) { (Get-Content $logPath).Count } else { 0 }
+    Start-Process -FilePath $ShortcutPath -Wait
+    Start-Sleep -Milliseconds 500
+    $afterLines = if (Test-Path $logPath) { (Get-Content $logPath).Count } else { 0 }
+    if ($afterLines -gt $beforeLines) {
+        Write-Host "Smoke test OK: agent_log.txt grew by $($afterLines - $beforeLines) lines"
+    } else {
+        Write-Warning "Smoke test inconclusive: agent_log.txt did not grow. Verify .bat manually."
+    }
+}
+```
+
+**적용 조건** (다음 4개 모두 충족 시 의무 포함):
+- 인프라 B (DB 없음)
+- 운영 OS = Windows
+- 구동방식 = 스케줄·트리거형 / 데스크톱·로컬앱형 / 데몬형 중 하나
+- 사람이 즉시 1회 실행할 진입점이 필요함 (자동 스케줄 외에도 수동 트리거 경로 필요)
+
+**적용 제외**:
+- 인프라 A (웹사이트 = 바로가기 무관)
+- 포털형 (브라우저 접속 = 바로가기 무관)
+- 메신저봇·API엔드포인트·확장·애드인 (각자의 진입점 메커니즘이 있음)
+- macOS·Linux 환경 (`.app`·`.desktop` 파일로 대체 — 별도 표준 자산)
+
+**아이콘 리소스 코드** (Windows shell32.dll 인덱스):
+- `,167` = 화살표(자동 트리거 느낌)
+- `,13` = 폴더
+- `,21` = 메모장
+- `,277` = 인터넷
+- PO 취향에 맞춰 선택 또는 .ico 파일 별도 첨부 (그 경우 `$IconResource = "$ProjectDir\icon.ico,0"`)
+
+**★ 파일 저장 인코딩 — UTF-8 BOM 의무** (V3.5 R7 실전 회고): `install_shortcut.ps1`에 한글 description·ShortcutName이 들어가는 경우, **BOM 없는 UTF-8로 저장하면 PowerShell이 ANSI(cp949)로 파싱하여 `Missing ')' in function parameter list` 같은 파싱 에러 발생.** 반드시 BOM 포함 UTF-8로 저장.
+- Python: `open(path, "w", encoding="utf-8-sig")` 또는 `codecs.open(path, "w", "utf-8-sig")`
+- PowerShell: `New-Object System.Text.UTF8Encoding($true)` 사용 (`$true` = BOM 포함) 또는 `Out-File -Encoding utf8`
+- **단, `.bat` 파일은 BOM 없는 UTF-8 유지** — cmd.exe가 BOM 토큰을 명령으로 오인해 `@echo off` 무효화 가능. `.bat`과 `.ps1`의 BOM 정책이 정반대인 점 주의.
+
+**구조의 핵심 — 분리형이 A↔B 이동을 무비용으로 만든다**:
+
+| 항목 | A | B |
+|---|---|---|
+| INSTRUCTION 본문 | `agents.system_prompt` (Supabase) | `skills/*/SKILL.md` (로컬 파일) |
+| 같은 자료? | ✅ — `sync_skills.py`가 SSOT를 양쪽에 적용 |
+| 엔진 코드 | `api/run.py` (Vercel Serverless) | `engine.py` (로컬 CLI) — 같은 패턴 |
+| 자가평가 | self_critique 호출 | engine.py에 같은 self_critique 이식 |
+| 메모리 | `conversations` 테이블 | `history.json` 파일 |
+| 도구 round-trip | OP_TOOLS 등록 | engine.py 내장 (간소화 8 도구) |
+
+**B → A 승격 (사용자 늘어서 포털 필요 시)**:
+1. `스킬스/*/SKILL.md`를 `sync_skills.py`로 Supabase `agents` 테이블에 INSERT
+2. `웹사이트/` 폴더에 페이지·api/run.py 배포
+3. **에이전트 본체(INSTRUCTION)는 0 변경** — 같은 마크다운 그대로
+
+**A → B 다운로드 (개인 사용 원하는 PO)**:
+1. `skills/{NEW_CODE}.zip`을 다운로드 (B 분리형 패키지)
+2. `python run.py {AGENT_CODE} {input}`로 PC에서 실행
+3. 같은 도메인 지식·같은 LLM·같은 자가평가 — 인증·과금만 없음
+
+### 구동 방식별 제작 요점
+
+- **웹사이트형** — 서버 호스팅 + 브라우저 UI
+- **데스크톱·로컬앱형** — 로컬 실행 스크립트/앱. **데모 모드 폴백 필수**(API 키 없어도 샘플로 동작)
+- **모바일앱형** — 모바일 UI/앱 패키징
+- **메신저봇형** — Slack·카톡·Teams 봇 연동
+- **확장·애드인형** — 브라우저 확장 / 업무도구 애드인 패키징
+- **데몬형** — 서버 상주 + 가드레일 (fail-open)
+- **API엔드포인트형** — API 서버 + 인증·rate limit
+- **스케줄·트리거형** — cron·webhook + fail-safe
+- **포털형 ★V3.0** — 6a + 6b + 6c 모두 필수, 단일 도메인에 N 에이전트 진열
+
+---
+
+## Phase 7. 출하 검사 — QC 4단 (V3.0)
+
+**자기검증 금지.** 제조에 참여하지 않은 **별도 Verification Agent**를 투입한다.
+(출처: SUNNY AI MAGIC 50 #28 / review-evaluate-코어1)
+
+### 7-0. Verification Agent 소환 메커니즘 (V3.1 신설)
+
+"별도 Verification Agent를 투입한다"는 선언만으로는 V2.0처럼 자기검증으로 회귀할 수 있다. 다음 메커니즘을 강제한다:
+
+**소환 절차 (4단계 — 모두 필수)**:
+
+1. **별도 Agent 도구 호출** — `Agent(subagent_type="...", model="sonnet", mode="auto")`로 신규 Subagent를 띄운다. 제조 Subagent가 자기 자신을 검증하지 않는다.
+2. **제조 컨텍스트 비전달** — Verification Subagent prompt에는 산출물(코드/문서/페이지)과 **검증 기준**만 전달. 제조 과정의 의도·근거·내부 결정 사항은 전달 금지 (편향 차단).
+3. **외부 게이트 도구 사용 의무** — 코드 검증은 `node --check`·`py_compile`·`ruff`·`eslint` 등 **외부 도구 실행 결과**를 함께 보고. Subagent의 의견만으로 판정 금지.
+4. **호출 증거 기록** — Phase 8 출하 보고서의 "QC 결과" 항목에 `verification_agent_invocations: N` 카운트 + 호출 시각·duration 명시.
+
+**금지**:
+- ❌ 제조 Subagent에게 "이제 검증해라"라고 추가 지시 (같은 Subagent의 역할 전환)
+- ❌ 메인 Claude Code(SA)가 직접 검증 의견 작성 (자기검증)
+- ❌ Subagent 호출은 하지만 prompt에 제조 과정을 다 보여줘서 편향 유도
+
+**위반 시 효과**: QC 결과 무효 처리, Phase 7 처음부터 재실행.
+
+> **V3.4 자기완결**: 외부 스킬(/review-evaluate·/pro-persona-debate·/주작-sal-da) 위임 금지. Cross Validator Subagent를 본 스킬이 직접 띄운다 (Phase 5-3 참조).
+
+### Verification Subagent prompt 양식 ★V3.5 후속 신설 (입력/출력 정의 명문화)
+
+자기검증 편향 차단을 위해 Subagent prompt를 다음 양식으로 통일한다:
+
+**입력 (Subagent에 전달)**:
+1. **검증 대상**: 산출물 파일 경로(들) 또는 산출물 텍스트 자체
+2. **검증 기준**: 다음 4축 (모든 검증에 공통)
+   - ① 사양 반영도 — changelog·기획안·MBO 목표 대비 본문 구현 여부
+   - ② cross-file 정합성·자기모순·dead-link
+   - ③ 100점 6 루브릭 채점 (사실·용어·구조·규칙·실용 각 15점 + 사양 충족률 25점)
+   - ④ 다음 Round 권고 (Critical/High/Medium/Low)
+3. **출력 형식**: 파일별 점수표 + 결함 분류 + 종합 점수 (응답 분량 한도 명시)
+
+**전달 금지 (편향 차단)**:
+- ❌ 제조 과정·의도·내부 결정 이력
+- ❌ 이전 Round의 평가 점수 (cross-pollution 방지)
+- ❌ 제조자(메인 SA)의 의견·자평
+- ❌ "이 부분은 의도된 설계다" 같은 변호 문장
+
+**출력 (Subagent가 메인에 반환)**:
+- 파일별 6축 점수표 + 종합 점수
+- Critical/High/Medium/Low 결함 목록 (라인 인용)
+- 다음 Round 권고 사항
+- 외부 도구 실행 결과(있다면)
+
+**입력 JSON 스키마** (Subagent에 전달할 prompt를 구조화):
+```json
+{
+  "verification_target": {
+    "file_paths": ["string"],
+    "round_number": "integer (1~10)",
+    "scope": "spec_alignment | full_audit | regression_only"
+  },
+  "criteria": {
+    "spec_source": "string (changelog 인용 또는 MBO 목표 발췌)",
+    "rubric": {
+      "사실_정확성": 15,
+      "용어_일관성": 15,
+      "구조_완성도": 15,
+      "규칙_준수": 15,
+      "실용성": 15,
+      "사양_충족률": 25
+    },
+    "severity_levels": ["Critical", "High", "Medium", "Low"]
+  },
+  "constraints": {
+    "do_not_pass": ["제조 의도", "이전 Round 점수", "제조자 자평", "변호 문장"],
+    "max_words": 1500
+  }
+}
+```
+
+**출력 JSON 스키마** (Subagent가 반환):
+```json
+{
+  "file_scores": [
+    {
+      "file_path": "string",
+      "scores": {
+        "사실_정확성": "integer (0~15)",
+        "용어_일관성": "integer (0~15)",
+        "구조_완성도": "integer (0~15)",
+        "규칙_준수": "integer (0~15)",
+        "실용성": "integer (0~15)",
+        "사양_충족률": "integer (0~25)"
+      },
+      "total": "integer (0~100)"
+    }
+  ],
+  "defects": [
+    {
+      "severity": "Critical | High | Medium | Low",
+      "file": "string",
+      "line_range": "string (예: L120-125)",
+      "description": "string",
+      "recommendation": "string"
+    }
+  ],
+  "summary": {
+    "average_score": "float",
+    "round_number": "integer",
+    "delta_from_previous": "integer (Round 2 이후)",
+    "next_round_recommended": "boolean",
+    "phase_3_eligible": "boolean",
+    "external_tool_results": ["string (선택 — node --check 등 외부 도구 출력)"]
+  }
+}
+```
+
+**Cross Validator vs 외부 LLM 검증 (v0.2)** — Cross Validator(Claude 서브에이전트) 100점 부여 시 자기 LLM 가족 편향 의심. Round ≥ 3 AND CV ≥ 95이면 codex CLI(GPT) 외부 검증 호출 의무. |CV − codex| > 3점이면 codex 발견 결함을 새 Round로 추가. codex가 채점 형식 미준수로 점수 측정 불가하면 "외부 검증 미실시" 표기 + Cross Validator 단독 판정 (100점 보장 불가 명시).
+
+### 규모 판정 → QC 강도
+
+| 규모 | 정량 판정 기준 (V3.1 — AND 조건) | QC 파이프라인 |
+|------|----------|--------------|
+| **S** | 부품 ≤ 2개 **AND** 코드 라인 ≤ 300 **AND** UI 없음 **AND** 배포형 아님 | 내장 review-evaluate 3 Round |
+| **M** | 부품 3~5개 **OR** 코드 라인 301~1500 **OR** UI 있음 (단일 페이지) | 내장 review-evaluate 5 Round |
+| **L** | 부품 ≥ 6개 **OR** 코드 라인 > 1500 **OR** 배포형 **OR** 포털 모드 **OR** UI 다수 페이지 | 내장 review-evaluate 10 Round + Cross Validator 2명 병렬 |
+
+**경계선 처리**: 두 규모에 걸치면 **높은 쪽으로 판정** (S↔M 경계 → M, M↔L 경계 → L). "딱 3개"·"애매한 UI" 같은 정성적 회피 금지. 배치/포털 모드는 자동 L.
+
+### 4단 QC (V3.0 분해)
+
+모든 규모에 공통 — 다만 강도는 규모별로 차등.
+
+#### 7-1. 정적 분석
+- **Dead-link 검사** — `<a>` href 검증, 외부 링크 HEAD 확인
+- **`href` 없는 `<Button>`·클릭 가능해 보이는 `<div>` 검출** (SKILL_ATLAS 교훈)
+- **JS brace check** — `node --check` 모든 .js 파일
+- **Python 컴파일** — `py_compile` 또는 `python -c "import {module}"`
+- **시크릿 누출 검사** — `git secrets`·정규식 패턴
+- **deprecated API 사용 검사**
+
+#### 7-2. 동적 검증
+- **실제 LLM 호출** — 4-provider 각각 round-trip 1회
+- **도구 round-trip** — 노출된 도구가 실제로 호출되는지
+- **데모 모드 폴백** — API 키 없을 때 샘플 출력 동작
+- **에러 경로** — 잘못된 입력·타임아웃·API 실패 시 안전한 응답
+
+#### 7-3. UI 클릭 테스트 ★"curl 200 ≠ 동작함" 7번 철칙 실행 (V3.1 — 우회 차단)
+- **Playwright 자동화 의무** — 기본 경로. `playwright install` 안 되는 환경에서도 우선 시도하고 실패 사유 기록
+- **자동화 불가 시에만 수동 폴백 허용** — 단, 다음 조건 모두 충족:
+  - 페이지 수 ≤ 5 (그 이상은 자동화 강제)
+  - 클릭 체크리스트를 파일로 작성하여 산출물에 보존 (`_qc/click_checklist_{date}.md`)
+  - PO가 직접 또는 별도 검증자가 체크리스트 모두 통과 서명
+- **금지 표현**: "Playwright 또는 수동" 같은 협상 가능 표현은 V3.1에서 **자동화 우선 + 폴백 조건 명시** 형태로 강제됨
+- **주요 버튼/링크 전부 클릭** — 404·무반응 0건
+- **모달·드롭다운 열림·닫힘**
+- **사용자 여정 KPI 통과** — Phase 2에서 정의한 여정 지표 실제로 통과
+- **포털 모드 추가** — 카탈로그 → 직능별 → 개별 페이지 3계층 모두 클릭, 인증·로그아웃 흐름 1회 검증
+
+#### 7-3+. ★ 출력 대상 시스템 실제 화면 확인 (V3.5 신설 — claude-news-agent 회고)
+
+**제조한 에이전트가 외부 시스템(웹사이트·DB·메신저 등)에 결과물을 게시·저장한다면, 그 시스템의 실제 사용자 화면을 사람 눈으로 확인하기 전까지 Verified 처리 금지.**
+
+- 자기 검증 금지의 구체 적용: `curl 200`, `python --dry-run` 통과, `SELECT * FROM ...` preview 텍스트 확인, 에이전트 자체 self_critique 5/5 — **이 모든 신호의 조합도 사람 눈 화면 확인을 대체하지 않는다**
+- 검증 주체: 메인 SA 또는 제조 Subagent **금지** → PO 직접 또는 별도 Verification Agent
+- 검증 화면: 출력 대상 시스템에서 **일반 사용자가 보는 그대로의 화면**. (관리자 콘솔의 raw DB 뷰 ≠ 사용자 화면)
+- 검증 항목 체크리스트 (최소):
+  - 텍스트가 의도한 시각 표현으로 렌더링되는가? (마크다운 `#`·`**` raw 노출 없음)
+  - 라벨·배지·아이콘이 의미와 맞게 표시되는가? (예: 외부 링크 라벨이 정확한 도메인 의미와 일치)
+  - 클릭 가능한 요소가 실제로 클릭되는가? (SKILL_ATLAS 교훈)
+  - 모바일/데스크톱 양쪽에서 깨지지 않는가?
+- 회고 사유: claude-news-agent에서 dry-run 5/5 + DB SELECT preview + 게시 성공 모든 자기검증 통과 후에도 PO 브라우저에서 ① 마크다운 raw 노출 ② "페이스북 원본 보기" 잘못된 라벨 두 결함 발견.
+
+#### 7-4. 한도·가드 시뮬 (V3.0 신설)
+- **비용 가드** — per_run / per_user_monthly / monthly 한도 경계 호출 시 402 응답
+- **인증 가드** — 비로그인 / 미승인 / 권한 부족 시 403/401
+- **권한 경계** — admin 전용 엔드포인트가 일반 회원에 노출되지 않음
+- **첨부 한도** — 최대 크기 초과 시 안전한 차단
+- **Rate limit** — 가드가 있다면 동작 확인
+
+### 결함 발견 시
+- `/5times-debug-loop`에 위임하여 박살 후 복귀
+- 같은 결함 2라운드 연속 잔존 시 Phase 6로 회귀
+
+### 출하 판정 (V3.1 — OR 게이트 선택 기준 명시)
+
+```
+✅ 합격 — review-evaluate 100점 + 사용자 여정 KPI 통과 + 4단 QC 통과 → Phase 8 출하
+❌ 불합격 — 결함 잔존 → 회귀 깊이 결정 표 적용
+```
+
+**회귀 깊이 결정 표 (V3.1 신설)** — 더 이상 "Phase 6 또는 Phase 4"의 모호한 OR 아님:
+
+| 결함 유형 | 회귀 위치 | 판정 기준 |
+|--------|----------|----------|
+| 단순 버그·문구·UI 미세 결함 | **Phase 6 재조립** | 부품 변경 없이 조립 수정으로 해결 가능 |
+| 부품 자체 결함·BOM 분류 오류·🔵 누락 | **Phase 4 재분해** | BOM 재산출 필요 — 부품 교체·재단·신규 자체제작 |
+| 아키텍처·정책 위반·KPI 미달 | **Phase 2 MBO 재승인** | 목표 자체가 달성 불가능한 구조였음 |
+| 모드 오판정 (단일인데 포털 구조 필요 등) | **Phase 0 모드 재선언** | 처음부터 다시 — 결정 트리 재수행 |
+
+이 표 위에서 결함을 분류하지 못하면 PO에게 AskUserQuestion으로 회귀 위치 확인.
+
+---
+
+## Phase 8. 자산화·출하
+
+만들고 끝이 아니다. 등재까지 해야 출하 완료다. (출처: SUNNY AI MAGIC 50 #18·#38)
+
+1. **등재** — 구동 방식에 맞는 위치에 배치
+2. **자산 기록** — 보유 자산 추적처(스킬 레지스트리·인덱스 등)에 1줄 등재
+3. **SAL Grid 반영** — SAL_Grid_Dev_Suite 프로젝트면 grid_records JSON 갱신
+4. **CLAUDE.md 헌법 등재** — 글로벌 또는 프로젝트 CLAUDE.md에 1줄 (V3.0 강조)
+5. **운영 로그 인프라 가동 확인** (V3.1 신설) — Phase 9 회귀 트리거가 임계값을 감지하려면 `usage_log`·`error_log`·`feedback` 테이블/파일이 적재되고 있어야 함. 다음 3가지 확인 후 출하:
+   - usage_log 테이블 존재 + 1건 이상 쓰기 검증
+   - error_log 또는 동등한 에러 캡처 메커니즘 가동
+   - feedback 수집 채널(관리자 콘솔 또는 외부 양식) 접근 가능
+   - 이 3가지 중 하나라도 미가동 시 Phase 6c로 회귀 (인프라 우선 보강)
+
+   **A 인프라 로그 예시 ★V3.5 후속 신설 (Medium 3)** — Supabase SQL 스키마:
+   ```sql
+   CREATE TABLE usage_log (
+       id           BIGSERIAL PRIMARY KEY,
+       agent_id     TEXT NOT NULL,
+       user_id      UUID,
+       ts           TIMESTAMPTZ DEFAULT now(),
+       model        TEXT,
+       provider     TEXT,                     -- anthropic·gemini·openai·grok
+       input_tokens INTEGER,
+       output_tokens INTEGER,
+       latency_ms   INTEGER,
+       cost_krw     NUMERIC(10,2),
+       critique_score SMALLINT,                -- 1~5 self_critique
+       regenerated  BOOLEAN DEFAULT FALSE
+   );
+   CREATE INDEX ON usage_log (agent_id, ts DESC);
+
+   CREATE TABLE error_log (
+       id         BIGSERIAL PRIMARY KEY,
+       agent_id   TEXT NOT NULL,
+       ts         TIMESTAMPTZ DEFAULT now(),
+       error_type TEXT,                        -- 401·402·429·parse_error 등
+       message    TEXT,
+       trace      TEXT
+   );
+
+   CREATE TABLE feedback (
+       id        BIGSERIAL PRIMARY KEY,
+       agent_id  TEXT NOT NULL,
+       user_id   UUID,
+       ts        TIMESTAMPTZ DEFAULT now(),
+       category  TEXT,                          -- bug·improvement·praise
+       content   TEXT,
+       resolved  BOOLEAN DEFAULT FALSE
+   );
+   ```
+
+   **B 인프라 로그 예시 ★V3.5 후속 신설 (Medium 3)** — `history.json` 구조 + `error.log` append:
+   ```json
+   // history.json
+   {
+     "version": 1,
+     "agent_id": "claude-news-agent",
+     "processed": {
+       "https://example.com/article-1": {
+         "title": "...",
+         "ts_iso": "2026-05-28T02:57:48+0900",
+         "provider": "openai",
+         "critique_score": 5,
+         "decision": "posted",
+         "external_post_id": 15,
+         "latency_ms": 14000,
+         "regenerated": false
+       }
+     },
+     "last_poll_ts": 1779904668.93
+   }
+   ```
+   ```text
+   # error.log (engine.py가 매 오류 시 append)
+   2026-05-28T02:48:16+0900 | claude-news-agent | 401 | invalid x-api-key | req_011CbTVcd...
+   2026-05-28T02:56:34+0900 | claude-news-agent | 429 | quota exhausted (gemini) | ClientError
+   ```
+
+   **확인 방법** — A는 `SELECT count(*) FROM usage_log WHERE agent_id=...`로 1건 이상, B는 `Test-Path history.json` + `Get-Content error.log -Tail 1`로 가동 확인.
+
+6. **★V3.5 R7·R8 — 바탕화면 바로가기 자동 생성 + 사전 검증** (인프라 B + Windows + 사람 수동 트리거 경로 있는 에이전트 한정)
+
+   **6-1. install_shortcut.ps1 자동 제조** — Phase 6에서 만들지 못했으면 Phase 8 진입 시 즉시 생성:
+   - Phase 6 "★ install_shortcut.ps1 표준 자산" 코드를 그대로 폴더에 저장 (UTF-8 BOM 필수)
+   - 한 번 제조하면 같은 폴더 안에서 `.bat` 진입점이 바뀌어도 재사용 가능
+
+   **6-2. 자동 호출 — 기본 호출** (사이드 이펙트 없는 dry-run 호출이 가능한 경우 권장):
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File "{프로젝트폴더}\install_shortcut.ps1" `
+              -ShortcutName "{한글 표시명}" `
+              -TargetBat "run-once.bat" `
+              -Description "{에이전트 설명}" `
+              -SmokeTest
+   ```
+   `-SmokeTest`는 설치 직후 .lnk를 1회 트리거하여 `agent_log.txt` 라인 증가로 가동 검증. **LLM API·DB INSERT 등 사이드 이펙트 있으면 `-SmokeTest` 제외 + 사후 수동 검증**.
+
+   **6-3. 검증 게이트** — 다음 모두 통과해야 출하 완료:
+   - install_shortcut.ps1 종료 코드 = 0 (코드 1·2는 실패: 1=.bat 없음, 2=한글 검출, 그 외=알 수 없음)
+   - `Test-Path "$env:USERPROFILE\Desktop\{한글 표시명}.lnk"` = True
+   - WScript.Shell.CreateShortcut으로 `.lnk`의 TargetPath·WorkingDirectory·Description 모두 의도값 일치
+   - SmokeTest 사용 시 `agent_log.txt` 라인 증가 확인
+
+   **6-3.5. ★ R9 신설 — Windows 어댑터 7개 룰 자동 검증 체크리스트** (이전엔 install_shortcut.ps1이 1번 룰만 자동 검증, 나머지 6개는 PO 수동 준수에 의존):
+   ```powershell
+   # tools/verify_windows_adapter.ps1 — Phase 6 어댑터 룰 7개를 정적 검증
+   # 사용: Verification Subagent가 호출 (자기검증 금지 룰 적용)
+   $bat = Get-Content "$ProjectDir\run-once.bat" -Raw -Encoding UTF8
+   $violations = @()
+   # 룰 1: 한글 echo 금지
+   if ($bat -match "(?m)^\s*echo[^\n]*[가-힯]") { $violations += "R1: Hangul echo detected" }
+   # 룰 2: 한글 경로 하드코딩 금지 (cd /d 또는 set 으로 한글 경로 박힘)
+   if ($bat -match "(?:cd /d|set [A-Z_]+=)[^\n]*[가-힯]") { $violations += "R2: Hangul path hardcoded (use pushd %~dp0)" }
+   # 룰 3: timeout 사용 금지
+   if ($bat -match "(?m)^\s*timeout\s") { $violations += "R3: timeout used (replace with ping -n N 127.0.0.1 > nul)" }
+   # 룰 4: PYTHONIOENCODING/PYTHONUTF8 강제 누락
+   if ($bat -notmatch "set\s+PYTHONIOENCODING=utf-8") { $violations += "R4a: PYTHONIOENCODING=utf-8 missing" }
+   if ($bat -notmatch "set\s+PYTHONUTF8=1") { $violations += "R4b: PYTHONUTF8=1 missing" }
+   # 룰 5: chcp 65001 누락
+   if ($bat -notmatch "chcp\s+65001") { $violations += "R5: chcp 65001 missing" }
+   # 룰 6: Python 스크립트에 sys.stdout.reconfigure UTF-8 누락
+   $pyFiles = Get-ChildItem "$ProjectDir\*.py" -ErrorAction SilentlyContinue
+   foreach ($py in $pyFiles) {
+       $content = Get-Content $py.FullName -Raw -Encoding UTF8
+       if ($content -match "print\(" -and $content -notmatch "sys\.stdout\.reconfigure") {
+           $violations += "R6: $($py.Name) has print() but no sys.stdout.reconfigure(utf-8)"
+       }
+   }
+   # 룰 7: install_shortcut.ps1 존재
+   if (-not (Test-Path "$ProjectDir\install_shortcut.ps1")) { $violations += "R7: install_shortcut.ps1 missing" }
+
+   if ($violations.Count -gt 0) {
+       Write-Error "Windows adapter rule violations:"
+       $violations | ForEach-Object { Write-Host "  - $_" }
+       exit 1
+   }
+   Write-Host "OK: all 7 Windows adapter rules pass"
+   ```
+   이 스크립트는 Phase 7 Verification Subagent가 호출 (제조자 직접 호출 금지 — 자기검증 회귀). 위반 시 Phase 6 어댑터 본체 재조립.
+
+   **6-4. 실패 시 회귀** — 위 게이트 중 하나라도 실패:
+   - exit 2 (한글 검출): Phase 6 본체로 회귀 → `.bat` 한글 echo 제거 → Phase 6 어댑터 룰 1번 재준수
+   - exit 1 (.bat 없음): Phase 6 본체로 회귀 → `run-once.bat` 생성 확인
+   - SmokeTest 실패: `.lnk`는 삭제하지 않고 PO에게 수동 검증 요청 (롤백 시 다른 에이전트와 충돌 가능 → PO 결정에 위임)
+
+   **회고 사유 (V3.5 R7)**: claude-news-agent에서 이 단계가 SKILL.md 본문에 표준화돼 있지 않아 PO가 스킬 호출 후 사후에 PowerShell COM으로 수동 추가.
+   **회고 사유 (V3.5 R8)**: 5사례 실전 검증에서 한글 echo 박힌 .bat 2건이 .lnk만 만들어지고 가동 silently 실패 → 사후 발견. install 단계에서 사전 차단으로 옮김.
+
+7. **출하 보고서**
+
+```
+🏭 에이전트 출하 완료 — {에이전트명/카탈로그명}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+제조 모드   : {단일/배치/포털}
+구동 방식   : {9종 중 1}
+등재 위치   : {경로}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BOM 요약    : 🟢적용 N · 🟡재단 N · 🔴걸러냄 N · 🏭자체제작 N · 🔵공통인프라 N
+발굴 출처   : {목록 — 사내 자산 포함}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+QC 결과     : {S/M/L} — review-evaluate XX/100점
+정적/동적/UI클릭/한도시뮬 : 통과/실패
+사용자 여정 : {KPI} — 통과/실패
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MBO 달성    : 목표 대비 달성/미달성
+헌법 등재   : ~/.claude/CLAUDE.md 또는 프로젝트 CLAUDE.md 기록 완료
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+구동·접근   : {URL / 로컬 경로 / 봇 멘션 / API / cron 등}
+운영 루프 가동 시점 : {Phase 9 진입 일자}
+```
+
+---
+
+## Phase 9. 운영·개선 — 피드백 루프 (V3.0 신설) ★
+
+**출하는 끝이 아니라 운영의 시작이다.** Phase 9는 자율 루프 — 일상 운영 중 수집된 데이터가 다음 사이클의 Phase 1로 회귀한다.
+
+### 9-1. 운영 모니터링
+
+- **사용 로그** — usage_log·error rate·latency·비용 누적
+- **이상 신호** — 가드 자주 발동 / 응답 시간 급증 / 특정 에이전트 사용률 0
+- **사용자 여정 KPI** — Phase 2에서 정의한 지표를 일상적으로 추적
+
+### 9-2. 피드백 수집
+
+- **관리자 콘솔** — 사용자 개선 요청·버그 리포트
+- **자동 수집** — 에러 로그·실패 패턴
+- **PO 인터뷰** — 분기·반기 단위 정성 피드백
+
+### 9-3. 개선 사이클 → Phase 1 회귀 (V3.1 수치 임계값 명시)
+
+다음 **정량 임계값** 중 하나라도 충족되면 다음 사이클을 자동 트리거한다 — "일정 수준"이라는 주관 표현 금지:
+
+**자동 트리거 조건 (OR — 하나라도 해당)**
+- **에러율** 일일 평균 ≥ **5%** (직전 7일 이동평균 기준)
+- **응답 시간** P95 ≥ **30초** (직전 24시간)
+- **피드백 누적** "버그·개선요청" 카테고리 ≥ **5건** (직전 14일)
+- **사용률 0** 에이전트 ≥ **30일** (포털 모드 — 폐기/통합 검토)
+- **비용 가드 발동** 일일 ≥ **3회** (한도 설정 부적정 신호)
+- **PO 정기 점검**: 매월 1일 운영 KPI 리뷰 (강제)
+
+**트리거 발동 후 회귀 깊이 매핑**:
+
+| 트리거 신호 | 회귀 깊이 |
+|--------|----------|
+| 단순 버그·문구 수정 (피드백 누적) | Phase 6 재조립만 |
+| 기능 추가·부품 변경 (피드백 + 사용률) | Phase 4 재분해부터 |
+| 정책·아키텍처 변경 (에러율·응답시간·정기점검) | Phase 2 MBO 재승인부터 |
+| 새 에이전트 추가 (포털) | Phase 1c 추가 라운드 → Phase 4 → Phase 6 |
+| 사용률 0 에이전트 폐기 결정 | Phase 8 자산 갱신 + Phase 9 폐기 절차 |
+
+트리거 발동 주체 — 자동 모니터링 시스템(usage_log·error_log)이 임계값 도달을 감지하면 관리자 콘솔에 알람을 띄우고, PO가 회귀 깊이를 1회 확인하여 다음 사이클을 승인한다. **자동 감지 + PO 1회 확인** 구조 — 둘 다 필수.
+
+#### 9-3-B. B 인프라 (DB 없음) — 운영 루프 축소형 (V3.2 신설)
+
+B에서는 자동 모니터링 시스템이 없으므로 다음으로 축소:
+
+| 항목 | A (Supabase) | **B (DB 없음)** |
+|---|---|---|
+| 모니터링 데이터 | `usage_log` + `conversations` DB | **`history.json` 로컬 파일** 누적 |
+| 에러 캡처 | `error_log` 테이블 | **`error.log` 텍스트 파일** (engine.py가 append) |
+| 비용 추적 | `usage_log.cost_krw` 자동 합산 | **Anthropic 콘솔 직접 확인** (또는 history.json 합산) |
+| 임계값 자동 감지 | 시스템 자동 알람 | **없음 — PO 수동 점검** (월 1회 정기 점검만 유지) |
+| 피드백 채널 | 관리자 콘솔 | **README의 연락처 또는 GitHub Issues** |
+| 트리거 발동 | 자동 + PO 확인 | **PO 정기 점검 시 수동 결정** (월 1회 history.json·error.log 검토) |
+| Canary 배포 | 1 직능·소수 사용자 선행 | **새 zip 버전을 PO만 먼저 실행** → 동작 확인 후 팀원에 배포 |
+
+B의 운영 루프는 "사용자 자체 점검" 중심:
+- engine.py가 매 호출 후 history.json·error.log에 자동 기록
+- PO가 월 1회 두 파일을 열어 "이상 패턴" 확인 (반복 에러·비정상 비용·사용률 0 등)
+- 이상 발견 시 Phase 1 회귀 — 같은 스킬스/*.md 수정 → 새 zip 빌드 → 재배포
+
+**핵심**: B에서도 운영 루프는 "종이 위 약속"이 아니라 실제 파일·실제 점검으로 작동. 자동화만 빠지고 절차는 유지.
+
+### 9-4. 점진적 배포 (Canary)
+
+배포형/포털형은 다음 사이클 산출물을 한꺼번에 풀지 않는다:
+- **Canary** — 1 직능·소수 사용자 대상 선행 배포
+- **Rollout** — 안정 확인 후 전체로 확장
+- **Rollback** — 문제 발견 시 즉시 되돌릴 수 있는 경로 확보
+
+### 운영 루프 종료 조건
+
+에이전트 폐기·교체·통합 시점까지 무한 루프. 폐기 시:
+- 데이터 보존·이관 결정
+- CLAUDE.md 등재 갱신 ("폐기" 또는 "후속 에이전트로 이관")
+- 사용 로그 아카이브
+
+---
+
+## skill-create와의 관계 (V3.0 — 양방향 명시, V3.5 후속 — 경계 표 강화)
+
+`/skill-create`는 형제 공장이다. 같은 9-Phase 방식·같은 분해·검증 후 조립 철학을 공유한다.
+
+### ★ 두 공장 경계 — 어느 쪽으로 가야 하나? (V3.5 후속 신설)
+
+| 차원 | `/skill-create` | `/llm-dependent-agent-create` (이 공장) |
+|---|---|---|
+| **제조 산출물** | `~/.claude/skills/{name}/SKILL.md` (마크다운) | 운영 가능한 에이전트 자산 (코드·UI·DB·인프라) |
+| **실행 주체** | Claude Code가 컨텍스트에 SKILL.md를 주입해 실행 | LLM API + 엔진 코드 + 사용자 인터페이스 |
+| **사용 위치** | 개발자 본인의 Claude Code 세션 | 외부 사용자가 호출하는 서비스 |
+| **DB·호스팅** | 없음 (마크다운만, 로컬 폴더) | A (Supabase) 또는 B (.py + .env). 호스팅 Vercel·Cloud Run·로컬 PC 등 |
+| **모드** | 단일 / 배치 (포털 불가) | 단일 / 배치 / **포털** (1 호스팅 = N 에이전트) |
+| **Phase 6 구조** | 단일 — SKILL.md 1장 | 3단 — 6a 본체 + 6b 플랫폼(포털) + 6c 공통 인프라(배치·포털) |
+| **5요소** | 자기완결·단일 책임 중심 | 5요소 전부 (자율 루프·메모리·도구·자가평가·헌법) |
+| **Phase 7-3+ 사람 눈 검증** | 외부 출력 스킬만 적용 (대다수 면제) | 거의 모든 에이전트 (외부 출력 본질) |
+
+**선택 가이드**: 산출물이 Claude Code 컨텍스트 안에서만 동작하면 → `/skill-create`. 외부 사용자가 호출하는 서비스가 필요하면 → 이 공장.
+
+**양방향 흐름**:
+- 에이전트로 출하된 자산이 → Claude Code 스킬 zip으로 **재포장** 가능 (선명AX 93개 → 스킬 zip 93개 사례)
+- 스킬로 시작된 자산이 → 독립 에이전트로 **분리·출하** 가능
+
+같은 BOM·같은 방법론·다른 포장.
+
+---
+
+## 금지 사항 (안티 패턴)
+
+❌ **절대 하지 말 것**:
+
+1. **통째 채택** — 발굴물을 분해 없이 그대로 가져다 쓰지 않는다 (Phase 4 필수).
+2. **결함 적용** — 🔴 판정 부품을 "기능이 좋으니까"로 되살리지 않는다.
+3. **운용 충돌 묵인** — 헌법 위반 부품을 글로벌에 들이지 않는다 (타협 불가).
+4. **스무고개 생략** — "요청이 명확하다"는 자가 판단으로 Phase 1을 건너뛰지 않는다.
+5. **MBO 게이트 무시** — PO 승인 없이 제조 시작 금지.
+6. **자기검증** — 제조자가 자기 에이전트를 QC하지 않는다.
+7. **"curl 200" 합격 처리** — HTTP 200·파일 생성만 보고 출하하지 않는다.
+8. **등재 누락** — CLAUDE.md 기록 없이 "완료" 선언하지 않는다.
+9. **모드 무선언** (V3.0) — 단일/배치/포털 모드를 명시하지 않고 진행하지 않는다. 자동 우회 사고의 원인.
+10. **운영 루프 단절** (V3.0) — Phase 9 진입 없이 "출하 완료"로 종결하지 않는다.
+
+---
+
+## 실행 체크리스트 (V3.0)
+
+```
+[ ] Phase 0  제조 대상 + 모드(단일/배치/포털) 수령
+[ ] Phase 1  모드별 스무고개 (1a/1b/1c) → 기획안 + 아키텍처 SVG (+ 배치/포털은 카탈로그·플랫폼 명세)
+[ ] Phase 2  MBO 목표서 → PO 승인 ⛔
+[ ] Phase 3  발굴 후보 5~10개 수집 (사내 자산 포함)
+[ ] Phase 4  분해 → 5대 KPI → 부품 분류 → BOM 5분류 산출 (🔵 공통 인프라 포함)
+[ ] Phase 5  설계 검증 (규모별 페르소나 토론 — 배치/포털은 L 강제)
+[ ] Phase 6a 에이전트 본체 조립 (5요소 탑재)
+[ ] Phase 6b 플랫폼 레이어 (포털 모드만)
+[ ] Phase 6c 공통 인프라 부품 (배치/포털 모드)
+[ ] Phase 7  QC 4단 (정적·동적·UI클릭·한도시뮬) → 별도 Verification Agent
+[ ] Phase 8  등재 + CLAUDE.md 기록 + 출하 보고서
+[ ] Phase 9  운영 루프 가동 (모니터링·피드백·회귀 트리거)
+```
+
+---
+
+## 필요 도구 (Tools Required)
+- AskUserQuestion (스무고개·타깃 확인·승인)
+- Read, Glob, Grep (발굴물 분해)
+- WebSearch, WebFetch (전방위 발굴)
+- Bash (`npx skills find`, OSS 설치·검증, Playwright 클릭)
+- Write, Edit (조립·등재)
+- Agent (Verification Agent·페르소나 토론 투입)
+- Skill (`/diagram-기본` 아키텍처 SVG 생성만 위임. 검토·평가·디버깅은 V3.4 자기완결 원칙으로 본 스킬이 직접 Cross Validator Subagent 호출)
+
+## 동원 방법론 출처
+- 스무고개 문답법 — SUNNY AI MAGIC 50 #01
+- 전문가 페르소나 토론 — #02 / pro-persona-debate-코어6
+- MBO 목표 관리 — #12 / mbo-천상
+- 발굴→검증→자산화 — #38 / find-skills-기본
+- 자산화 4단계 사다리 — #18·#22
+- QC 4종 출하검사 — #28 / review-evaluate-코어1 · pro-persona-debate-코어6 · 주작-sal-da · 5times-debug-loop
+- OSS 발굴 표본 — KD엔지니어링 사내 AI 에이전트 하우스 9칸 사례 (#50)
+- 배치/포털 모드·운영 루프 ★V3.0 — 선명AX 7직능 93 에이전트 제조 회고 (2026-05-25)
+
+**이 스킬은 에이전트 제조 공장이다. 발굴하고, 분해하고, 걸러내고, 적용하고, 검사하여 — 완성된 에이전트를 출하한다. 그리고 운영 루프로 다음 사이클을 시작한다.**
