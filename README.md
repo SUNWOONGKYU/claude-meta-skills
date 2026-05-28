@@ -29,11 +29,23 @@ LLM(두뇌) 의존형 AI 에이전트를 9-Phase 방식으로 만든다. 출하 
 
 명령어 직접 입력하기 귀찮으시면, 본인의 Claude Code 세션에 **아래 한 줄을 그대로 붙여넣으세요.** Claude Code가 알아서 다운받고 `~/.claude/skills/`에 설치합니다.
 
+### 둘 다 설치하기
+
 > **"https://github.com/SUNWOONGKYU/claude-meta-skills 에서 두 메타 스킬을 받아서 내 `~/.claude/skills/` 폴더에 설치해 줘."**
 
 또는 더 짧게:
 
 > **"`SUNWOONGKYU/claude-meta-skills` 설치해 줘."**
+
+### 하나만 설치하기 (둘 중 하나만 필요할 때)
+
+**에이전트 만드는 스킬만 받기** (`/llm-dependent-agent-create`)
+> **"`SUNWOONGKYU/claude-meta-skills` 에서 `llm-dependent-agent-create`만 받아서 내 `~/.claude/skills/`에 설치해 줘."**
+
+**스킬 만드는 스킬만 받기** (`/skill-create`)
+> **"`SUNWOONGKYU/claude-meta-skills` 에서 `skill-create`만 받아서 내 `~/.claude/skills/`에 설치해 줘."**
+
+### 공통 사항
 
 설치 후 새 Claude Code 세션에서 `/skill-create` 또는 `/llm-dependent-agent-create`를 호출하면 됩니다. Windows·macOS·Linux 모두 동일.
 
