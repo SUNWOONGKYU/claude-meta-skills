@@ -68,14 +68,14 @@ LLM(두뇌) 의존형 AI 에이전트를 9-Phase 방식으로 만든다. 출하 
 **Windows (PowerShell·Git Bash·WSL 공통)**
 ```bash
 git clone https://github.com/SUNWOONGKYU/claude-meta-skills.git
-cp -r claude-meta-skills/skill-create "$env:USERPROFILE\.claude\skills\"
+cp -r claude-meta-skills/skill-create-코어5 "$env:USERPROFILE\.claude\skills\"
 cp -r claude-meta-skills/에신-llm-dependent-agent-create "$env:USERPROFILE\.claude\skills\"
 ```
 
 **macOS·Linux**
 ```bash
 git clone https://github.com/SUNWOONGKYU/claude-meta-skills.git
-cp -r claude-meta-skills/skill-create ~/.claude/skills/
+cp -r claude-meta-skills/skill-create-코어5 ~/.claude/skills/
 cp -r claude-meta-skills/에신-llm-dependent-agent-create ~/.claude/skills/
 ```
 
@@ -104,9 +104,9 @@ gh repo clone SUNWOONGKYU/claude-meta-skills
 $skillsDir = "$env:USERPROFILE\.claude\skills"
 
 # /skill-create
-New-Item -ItemType Directory -Force "$skillsDir\skill-create" | Out-Null
-Invoke-WebRequest "https://raw.githubusercontent.com/SUNWOONGKYU/claude-meta-skills/main/skill-create/SKILL.md" `
-    -OutFile "$skillsDir\skill-create\SKILL.md"
+New-Item -ItemType Directory -Force "$skillsDirskill-create-코어5" | Out-Null
+Invoke-WebRequest "https://raw.githubusercontent.com/SUNWOONGKYU/claude-meta-skills/main/skill-create-코어5/SKILL.md" `
+    -OutFile "$skillsDirskill-create-코어5\SKILL.md"
 
 # /에신-llm-dependent-agent-create
 New-Item -ItemType Directory -Force "$skillsDir\에신-llm-dependent-agent-create" | Out-Null
@@ -118,8 +118,8 @@ Invoke-WebRequest "https://raw.githubusercontent.com/SUNWOONGKYU/claude-meta-ski
 ```bash
 mkdir -p ~/.claude/skills/skill-create ~/.claude/skills/에신-llm-dependent-agent-create
 
-curl -L https://raw.githubusercontent.com/SUNWOONGKYU/claude-meta-skills/main/skill-create/SKILL.md \
-     -o ~/.claude/skills/skill-create/SKILL.md
+curl -L https://raw.githubusercontent.com/SUNWOONGKYU/claude-meta-skills/main/skill-create-코어5/SKILL.md \
+     -o ~/.claude/skills/skill-create-코어5/SKILL.md
 
 curl -L https://raw.githubusercontent.com/SUNWOONGKYU/claude-meta-skills/main/에신-llm-dependent-agent-create/SKILL.md \
      -o ~/.claude/skills/에신-llm-dependent-agent-create/SKILL.md
